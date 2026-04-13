@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Yarn (keep releases/plugins if you adopt zero-installs; ignore local state)
+.yarn/install-state.gz
+.yarn/cache
+
+# Build / caches
+dist/
+.next/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment (keep examples)
+.env
+.env.*.local
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db

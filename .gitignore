@@ -1,31 +1,44 @@
 # Dependencies
 node_modules/
 
-# Yarn (keep releases/plugins if you adopt zero-installs; ignore local state)
+# Yarn (local state; patterns with "/" are relative to *this* folder only, so use **/)
+**/.yarn/install-state.gz
+**/.yarn/cache
 .yarn/install-state.gz
-.yarn/cache
+
+# Plug'n'Play (if enabled in a subproject)
+**/.pnp.*
+**/.pnp.js
 
 # Build / caches
 dist/
 .next/
+out/
 build/
 .turbo/
+coverage/
 *.tsbuildinfo
+
+# Deploy / editor
+.vercel/
+.idea/
 
 # Python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 
-# Environment (keep examples)
+# Environment (root-level only)
 .env
 .env.*.local
 
-# Logs & OS
+# Logs & OS & secrets
 *.log
 .DS_Store
 Thumbs.db
+*.pem

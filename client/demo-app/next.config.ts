@@ -11,13 +11,6 @@ const nextConfig: NextConfig = {
     esmExternals: 'loose',
     externalDir: true,
   },
-  webpack: (config) => {
-    config.resolve.alias['@finatic/client'] = path.resolve(
-      __dirname,
-      '../../../SDKs/Client/FinaticClientSDK/src'
-    );
-    return config;
-  },
 };
 
 export default nextConfig;

@@ -49,6 +49,22 @@ from finatic_server_python import FinaticServer
 API_URL = os.getenv("FINATIC_API_URL", "https://api.finatic.dev")
 API_KEY = os.getenv("FINATIC_API_KEY")
 FINATIC_ENVIRONMENT = os.getenv("FINATIC_ENVIRONMENT", "sandbox")
+CONNECT_URL = os.getenv("FINATIC_CONNECT_URL", "https://connect.finatic.dev").rstrip("/")
+
+
+def get_portal_url(portal_link: dict) -> str | None:
+    portal_data = portal_link.get("success", {}).get("data", {}) or portal_link.get("data", {})
+    portal_url = portal_data.get("portalUrl") or portal_data.get("portal_url")
+    if portal_url:
+        return portal_url
+
+    token = portal_data.get("one_time_token")
+    if not token:
+        return None
+
+    from urllib.parse import urlencode
+
+    return f"{CONNECT_URL}/auth?{urlencode({'token': token})}"
 
 
 async def wait_for_portal_authentication(portal_url: str) -> bool:
@@ -89,8 +105,7 @@ async def main():
     )
 
     portal_link = await finatic.v1.create_portal_link(session_id)
-    portal_data = portal_link.get("success", {}).get("data", {}) or portal_link.get("data", {})
-    portal_url = portal_data.get("portalUrl") or portal_data.get("portal_url")
+    portal_url = get_portal_url(portal_link)
     if not portal_url:
         console.print("[red]Portal link response did not include a URL.[/red]")
         console.print(portal_link)

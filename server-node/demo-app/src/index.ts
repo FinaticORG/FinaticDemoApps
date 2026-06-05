@@ -15,6 +15,23 @@ import inquirer from 'inquirer';
 const API_URL = process.env.FINATIC_API_URL || 'https://api.finatic.dev';
 const API_KEY = process.env.FINATIC_API_KEY!;
 const FINATIC_ENVIRONMENT = process.env.FINATIC_ENVIRONMENT || 'sandbox';
+const CONNECT_URL = (process.env.FINATIC_CONNECT_URL || 'https://connect.finatic.dev').replace(/\/$/, '');
+
+function getPortalUrl(portalLink: unknown): string | null {
+  const data =
+    (portalLink as any)?.success?.data ??
+    (portalLink as any)?.data ??
+    {};
+  const portalUrl = data.portalUrl || data.portal_url;
+  if (portalUrl) return portalUrl;
+
+  const token = data.one_time_token;
+  if (!token) return null;
+
+  const url = new URL('/auth', CONNECT_URL);
+  url.searchParams.set('token', token);
+  return url.toString();
+}
 
 async function waitForPortalAuthentication(portalUrl: string): Promise<boolean> {
   console.log('\n🌐 Please visit this URL to authenticate:');
@@ -63,11 +80,7 @@ async function main() {
     },
     { environment: FINATIC_ENVIRONMENT as any }
   );
-  const portalUrl =
-    (portalLink as any)?.success?.data?.portalUrl ||
-    (portalLink as any)?.success?.data?.portal_url ||
-    (portalLink as any)?.data?.portalUrl ||
-    (portalLink as any)?.data?.portal_url;
+  const portalUrl = getPortalUrl(portalLink);
 
   if (!portalUrl) {
     console.log('Portal link response did not include a URL:', portalLink);

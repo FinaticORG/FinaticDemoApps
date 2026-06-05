@@ -29,8 +29,8 @@ Identity terms used by the demos:
 
 - **Client demo (`client/demo-app`)**: keep environment-specific URL keys and point staging URL values to `https://api-staging.finatic.dev`. Set `NEXT_PUBLIC_FINATIC_CONNECT_URL` or `FINATIC_CONNECT_URL` when testing a non-default Connect host.
 - **Client simple demo (`client/simple-demo-app`)**: set `VITE_FINATIC_ENVIRONMENT=sandbox` or `live`, and set `VITE_FINATIC_CONNECT_URL` when testing a non-default Connect host.
-- **Server Node demo (`server-node/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev` and `FINATIC_ENVIRONMENT=sandbox` or `live`.
-- **Server Python demo (`server-python/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev` and `FINATIC_ENVIRONMENT=sandbox` or `live`.
+- **Server Node demo (`server-node/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev`, `FINATIC_ENVIRONMENT=sandbox` or `live`, and `FINATIC_CONNECT_URL` when testing a non-default Connect host.
+- **Server Python demo (`server-python/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev`, `FINATIC_ENVIRONMENT=sandbox` or `live`, and `FINATIC_CONNECT_URL` when testing a non-default Connect host.
 
 ## Quick Start
 

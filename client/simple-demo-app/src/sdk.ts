@@ -15,6 +15,88 @@ const FINATIC_ENVIRONMENT = (import.meta as any).env?.VITE_FINATIC_ENVIRONMENT |
 // Singleton instance
 let finaticInstance: FinaticConnect | null = null;
 
+type PortalCallbacks = {
+  onSuccess?: (userId: string) => void;
+  onError?: (error: Error) => void;
+  onClose?: () => void;
+};
+
+function getConnectUrl(): string {
+  return (
+    (import.meta as any).env?.VITE_FINATIC_CONNECT_URL ||
+    (FINATIC_ENVIRONMENT === 'sandbox'
+      ? 'https://connect.finatic.dev'
+      : 'https://connect.finatic.dev')
+  ).replace(/\/$/, '');
+}
+
+function showPortalFrame(portalUrl: string, sessionId: string, options: PortalCallbacks = {}): void {
+  const container = document.createElement('div');
+  container.style.cssText = [
+    'position: fixed',
+    'inset: 0',
+    'background: rgba(0, 0, 0, 0.5)',
+    'z-index: 9999',
+  ].join(';');
+
+  const iframe = document.createElement('iframe');
+  iframe.src = portalUrl;
+  iframe.style.cssText = [
+    'position: absolute',
+    'top: 50%',
+    'left: 50%',
+    'transform: translate(-50%, -50%)',
+    'width: 90%',
+    'max-width: 500px',
+    'height: 90%',
+    'max-height: 600px',
+    'border: none',
+    'border-radius: 24px',
+    'background: white',
+  ].join(';');
+  iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-same-origin');
+  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+
+  const originalBodyStyle = document.body.style.cssText;
+  const scrollY = window.scrollY;
+  let portalOrigin: string | null = null;
+  try {
+    portalOrigin = new URL(portalUrl).origin;
+  } catch {
+    portalOrigin = null;
+  }
+
+  function cleanup(): void {
+    window.removeEventListener('message', handleMessage);
+    container.remove();
+    document.body.style.cssText = originalBodyStyle;
+    window.scrollTo(0, scrollY);
+  }
+
+  function handleMessage(event: MessageEvent): void {
+    if (portalOrigin && event.origin !== portalOrigin) return;
+    if (!event.data || typeof event.data !== 'object' || !event.data.type) return;
+
+    const { type, userId, error, data } = event.data;
+    if (type === 'portal-success') {
+      options.onSuccess?.(userId || data?.userId || sessionId);
+    } else if (type === 'portal-error') {
+      options.onError?.(new Error(error || data?.message || 'Unknown portal error'));
+    } else if (type === 'portal-close') {
+      options.onClose?.();
+      cleanup();
+    }
+  }
+
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.body.style.top = `-${scrollY}px`;
+  container.appendChild(iframe);
+  document.body.appendChild(container);
+  window.addEventListener('message', handleMessage);
+}
+
 /**
  * Get stored user ID from localStorage
  * 
@@ -201,11 +283,48 @@ export async function openPortal(options?: {
         storeUserId(userId);
       };
 
-  await finaticInstance.openPortal({
-    theme: options?.theme,
-    brokers: options?.brokers,
-    email: options?.email,
-    mode: options?.mode,
+  const apiKey = (import.meta as any).env?.VITE_FINATIC_API_KEY;
+  const sessionId = finaticInstance.getSessionId?.() ?? (finaticInstance as any).sessionId;
+
+  if (!apiKey) {
+    throw new Error('VITE_FINATIC_API_KEY environment variable is required');
+  }
+  if (!sessionId) {
+    throw new Error('Session not initialized. Reinitialize the SDK before opening Connect.');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/sessions/${encodeURIComponent(sessionId)}/portal-links`, {
+    method: 'POST',
+    headers: {
+      'X-API-Key': apiKey,
+      'X-Finatic-Environment': FINATIC_ENVIRONMENT,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create v1 portal link: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  const token = data.success?.data?.one_time_token ?? data.data?.one_time_token;
+  if (!token) {
+    throw new Error('No portal token found in API response');
+  }
+
+  const portalUrl = new URL('/auth', getConnectUrl());
+  portalUrl.searchParams.set('token', token);
+  if (typeof options?.theme === 'string') {
+    portalUrl.searchParams.set('theme', options.theme);
+  } else if (options?.theme?.preset) {
+    portalUrl.searchParams.set('theme', options.theme.preset);
+  }
+  options?.brokers?.forEach((broker) => portalUrl.searchParams.append('brokers', broker));
+  if (options?.email) portalUrl.searchParams.set('email', options.email);
+  if (options?.mode) portalUrl.searchParams.set('mode', options.mode);
+
+  showPortalFrame(portalUrl.toString(), sessionId, {
     onSuccess: wrappedOnSuccess,
     onError: options?.onError,
     onClose: options?.onClose,

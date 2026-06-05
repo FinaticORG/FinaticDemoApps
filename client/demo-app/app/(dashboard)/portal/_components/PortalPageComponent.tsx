@@ -56,6 +56,7 @@ export default function PortalPageComponent(): JSX.Element {
     currentUserId,
     checkAuth,
     setAuthState,
+    openPortal,
     logout,
     isLoading,
   } = useFinatic();
@@ -235,7 +236,7 @@ export default function PortalPageComponent(): JSX.Element {
         addLog('info', `Opening portal with stages: ${portalStages.join(', ')}`);
       }
 
-      await finatic.openPortal({
+      await openPortal({
         ...options,
         onSuccess: async (userId: string) => {
           addLog('success', `Portal opened successfully for user: ${userId}`);
@@ -293,6 +294,7 @@ export default function PortalPageComponent(): JSX.Element {
     setStoredUserId,
     checkAuth,
     setAuthState,
+    openPortal,
     appendEvent,
   ]);
 

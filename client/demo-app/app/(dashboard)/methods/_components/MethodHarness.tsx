@@ -120,7 +120,7 @@ export function MethodHarness({
   description,
   methodGroups,
 }: MethodHarnessProps) {
-  const { finatic, addLog, isLoading, error, isAuthed, checkAuth } =
+  const { finatic, addLog, isLoading, error, isAuthed, checkAuth, openPortal } =
     useFinatic();
 
   const initialFieldState = useMemo(() => {
@@ -318,7 +318,7 @@ export function MethodHarness({
       return;
     }
     try {
-      await finatic.openPortal();
+      await openPortal();
       // Re-check auth shortly after opening portal
       setTimeout(async () => {
         await checkAuth();
@@ -388,17 +388,23 @@ export function MethodHarness({
           getActiveAccounts: "getAllAccounts", // Will filter after
         };
         const actualMethodName = methodMap[methodName] || methodName;
-        const target = (finatic as unknown as Record<string, unknown>)[
-          actualMethodName
-        ];
-        if (typeof target !== "function") {
-          throw new Error(
-            `Method ${actualMethodName} is not available on FinaticConnect`,
+        let methodResult: unknown;
+        if (actualMethodName === "openPortal") {
+          await openPortal();
+          methodResult = { opened: true, route: "/api/v1/sessions/{sessionId}/portal-links" };
+        } else {
+          const target = (finatic as unknown as Record<string, unknown>)[
+            actualMethodName
+          ];
+          if (typeof target !== "function") {
+            throw new Error(
+              `Method ${actualMethodName} is not available on FinaticConnect`,
+            );
+          }
+          methodResult = await Promise.resolve(
+            (target as (...args: any[]) => unknown).apply(finatic, args),
           );
         }
-        let methodResult = await Promise.resolve(
-          (target as (...args: any[]) => unknown).apply(finatic, args),
-        );
 
         // Handle response extraction for methods that return FinaticResponse
         if (

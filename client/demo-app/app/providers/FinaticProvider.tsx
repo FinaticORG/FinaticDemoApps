@@ -11,6 +11,7 @@ import React, {
 } from 'react';
 import { FinaticConnect } from '@finatic/client';
 import { useEnvironmentConfig } from '@/app/providers/EnvironmentConfigProvider';
+import { openV1Portal } from '@/lib/v1Portal';
 
 type LogEntry = {
   type: 'info' | 'error' | 'success';
@@ -71,6 +72,7 @@ interface FinaticContextValue {
   currentUserId: string | null;
   checkAuth: () => Promise<void>;
   setAuthState: (isAuthenticated: boolean, userId: string | null) => void;
+  openPortal: (options?: Parameters<typeof openV1Portal>[3]) => Promise<void>;
   // Logout - clears user, auth state, and reinitializes SDK
   logout: () => Promise<void>;
 }
@@ -328,6 +330,16 @@ export function FinaticProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [addLog]
+  );
+
+  const openPortal = useCallback(
+    async (options?: Parameters<typeof openV1Portal>[3]) => {
+      if (!finatic) {
+        throw new Error('SDK is not initialized. Reinitialize before opening Connect.');
+      }
+      await openV1Portal(finatic, mode, environment, options);
+    },
+    [finatic, mode, environment]
   );
 
   // Full cleanup function to clear all SDK-related state
@@ -785,6 +797,7 @@ export function FinaticProvider({ children }: { children: React.ReactNode }) {
       currentUserId,
       checkAuth,
       setAuthState,
+      openPortal,
       logout,
     }),
     [
@@ -806,6 +819,7 @@ export function FinaticProvider({ children }: { children: React.ReactNode }) {
       currentUserId,
       checkAuth,
       setAuthState,
+      openPortal,
     ]
   );
 

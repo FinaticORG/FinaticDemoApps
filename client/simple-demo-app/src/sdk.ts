@@ -10,6 +10,7 @@ import { FinaticConnect } from '@finatic/client';
 
 // API base URL from environment variable, defaulting to production
 const API_BASE_URL = (import.meta as any).env?.VITE_FINATIC_API_URL || 'https://api.finatic.dev';
+const FINATIC_ENVIRONMENT = (import.meta as any).env?.VITE_FINATIC_ENVIRONMENT || 'sandbox';
 
 // Singleton instance
 let finaticInstance: FinaticConnect | null = null;
@@ -76,13 +77,19 @@ export async function initializeSDK(): Promise<FinaticConnect> {
   // which then securely calls the Finatic API with your API key.
   // This prevents exposing your API key in the frontend bundle.
   
-  // Fetch token from Finatic API
-  const response = await fetch(`${API_BASE_URL}/api/beta/session/init`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/sessions`, {
     method: 'POST',
     headers: {
       'X-API-Key': apiKey,
+      'X-Finatic-Environment': FINATIC_ENVIRONMENT,
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify({
+      environment: FINATIC_ENVIRONMENT,
+      metadata: {
+        demo: 'client/simple-demo-app',
+      },
+    }),
   });
 
   if (!response.ok) {
@@ -105,6 +112,7 @@ export async function initializeSDK(): Promise<FinaticConnect> {
   finaticInstance = await FinaticConnect.init(token, storedUserId ?? undefined,
     {
       baseUrl: API_BASE_URL,
+      apiEnvironment: FINATIC_ENVIRONMENT,
     }
   );
 
@@ -204,118 +212,22 @@ export async function openPortal(options?: {
   });
 }
 
-// Data fetching methods - COMMENTED OUT (focus on trading)
-// Uncomment these if you need to test data fetching methods
-
-// /**
-//  * Get all brokers
-//  * 
-//  * @returns Promise<any[]> - Array of brokers
-//  */
-// export async function getBrokers(): Promise<any[]> {
-//   if (!finaticInstance) {
-//     throw new Error('SDK not initialized. Call initializeSDK() first.');
-//   }
-
-//   const response = await finaticInstance.getBrokers();
-//   return extractData(response) || [];
-// }
-
-// /**
-//  * Get all accounts
-//  * 
-//  * @returns Promise<any[]> - Array of accounts
-//  */
-// export async function getAllAccounts(): Promise<any[]> {
-//   if (!finaticInstance) {
-//     throw new Error('SDK not initialized. Call initializeSDK() first.');
-//   }
-
-//   const response = await finaticInstance.getAllAccounts();
-//   return extractData(response) || [];
-// }
-
-// /**
-//  * Get all orders
-//  * 
-//  * @returns Promise<any[]> - Array of orders
-//  */
-// export async function getAllOrders(): Promise<any[]> {
-//   if (!finaticInstance) {
-//     throw new Error('SDK not initialized. Call initializeSDK() first.');
-//   }
-
-//   const response = await finaticInstance.getAllOrders();
-//   return extractData(response) || [];
-// }
-
-// /**
-//  * Get all positions
-//  * 
-//  * @returns Promise<any[]> - Array of positions
-//  */
-// export async function getAllPositions(): Promise<any[]> {
-//   if (!finaticInstance) {
-//     throw new Error('SDK not initialized. Call initializeSDK() first.');
-//   }
-
-//   const response = await finaticInstance.getAllPositions();
-//   return extractData(response) || [];
-// }
-
-// /**
-//  * Get all balances
-//  * 
-//  * @returns Promise<any[]> - Array of balances
-//  */
-// export async function getAllBalances(): Promise<any[]> {
-//   if (!finaticInstance) {
-//     throw new Error('SDK not initialized. Call initializeSDK() first.');
-//   }
-
-//   const response = await finaticInstance.getAllBalances();
-//   return extractData(response) || [];
-// }
-
-// /**
-//  * Get all transactions
-//  * 
-//  * @returns Promise<any[]> - Array of transactions
-//  */
-// export async function getAllTransactions(): Promise<any[]> {
-//   if (!finaticInstance) {
-//     throw new Error('SDK not initialized. Call initializeSDK() first.');
-//   }
-
-//   const response = await finaticInstance.getAllTransactions();
-//   return extractData(response) || [];
-// }
-
-/**
- * Place an order
- * 
- * @param params - Order parameters
- * @returns Promise<any> - Order result
- */
-export async function placeOrder(params: {
-  broker: string;
-  accountNumber: number;
-  order: {
-    orderType: string;
-    assetType: string;
-    action: string;
-    timeInForce: string;
-    symbol: string;
-    orderQty: number;
-  };
-}): Promise<any> {
+export async function listAccounts(): Promise<any> {
   if (!finaticInstance) {
     throw new Error('SDK not initialized. Call initializeSDK() first.');
   }
 
-  const response = await finaticInstance.placeOrder(params);
-  return response;
+  return finaticInstance.v1.listAccounts({ includeSyncStatus: true }, {
+    environment: FINATIC_ENVIRONMENT,
+  });
 }
 
-// Helper function removed - not needed for trading demo
+export async function getAccount(accountId: string): Promise<any> {
+  if (!finaticInstance) {
+    throw new Error('SDK not initialized. Call initializeSDK() first.');
+  }
 
+  return finaticInstance.v1.getAccount(accountId, {
+    environment: FINATIC_ENVIRONMENT,
+  });
+}

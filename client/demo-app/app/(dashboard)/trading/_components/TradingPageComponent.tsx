@@ -1928,10 +1928,10 @@ export function TradingPageComponent() {
     ) {
       orderObject.orderQty = modifyOrder.orderQty;
     }
-    if (modifyOrder.price !== undefined && modifyOrder.price !== '' && Number.isFinite(Number(modifyOrder.price))) {
+    if (modifyOrder.price !== undefined && Number.isFinite(Number(modifyOrder.price))) {
       orderObject.price = modifyOrder.price;
     }
-    if (modifyOrder.stopPrice !== undefined && modifyOrder.stopPrice !== '' && Number.isFinite(Number(modifyOrder.stopPrice))) {
+    if (modifyOrder.stopPrice !== undefined && Number.isFinite(Number(modifyOrder.stopPrice))) {
       orderObject.stopPrice = modifyOrder.stopPrice;
     }
     if (modifyOrder.expireTime) {
@@ -2022,10 +2022,10 @@ export function TradingPageComponent() {
       ) {
         orderObject.orderQty = modifyOrder.orderQty;
       }
-      if (modifyOrder.price !== undefined && modifyOrder.price !== '' && Number.isFinite(Number(modifyOrder.price))) {
+      if (modifyOrder.price !== undefined && Number.isFinite(Number(modifyOrder.price))) {
         orderObject.price = modifyOrder.price;
       }
-      if (modifyOrder.stopPrice !== undefined && modifyOrder.stopPrice !== '' && Number.isFinite(Number(modifyOrder.stopPrice))) {
+      if (modifyOrder.stopPrice !== undefined && Number.isFinite(Number(modifyOrder.stopPrice))) {
         orderObject.stopPrice = modifyOrder.stopPrice;
       }
       if (modifyOrder.expireTime) orderObject.expireTime = modifyOrder.expireTime;

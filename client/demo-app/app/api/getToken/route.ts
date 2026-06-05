@@ -26,13 +26,22 @@ async function handleRequest(request: Request) {
       );
     }
 
-    // Make request to Finatic API
-    const response = await fetch(`${apiUrl}/api/beta/session/init`, {
+    const sessionBody = {
+      environment: mode,
+      metadata: {
+        demo: 'client/demo-app',
+        runtimeEnvironment: environment,
+      },
+    };
+
+    const response = await fetch(`${apiUrl}/api/v1/sessions`, {
       method: 'POST',
       headers: {
         'X-API-Key': apiKey,
+        'X-Finatic-Environment': mode,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(sessionBody),
     });
 
     console.log('Finatic API response status:', response.status);

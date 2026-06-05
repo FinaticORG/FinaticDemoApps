@@ -12,13 +12,8 @@ import {
   isAuthenticated,
   getUserId,
   openPortal,
-  placeOrder,
-  // getBrokers,
-  // getAllAccounts,
-  // getAllOrders,
-  // getAllPositions,
-  // getAllBalances,
-  // getAllTransactions,
+  listAccounts,
+  getAccount,
 } from './sdk';
 import './App.css';
 
@@ -31,10 +26,9 @@ function App() {
     userId: null as string | null,
   });
 
-  // Trading State
-  const [placingOrder, setPlacingOrder] = useState(false);
-  const [orderResult, setOrderResult] = useState<any>(null);
-  const [orderError, setOrderError] = useState<string | null>(null);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [accountResult, setAccountResult] = useState<any>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
 
   // Initialize SDK on mount
   useEffect(() => {
@@ -69,40 +63,45 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle place order
-  const handlePlaceOrder = async () => {
+  const handleListAccounts = async () => {
     if (!authStatus.isAuthenticated) {
-      setOrderError('Please authenticate first');
+      setAccountError('Please authenticate first');
       return;
     }
 
-    setPlacingOrder(true);
-    setOrderError(null);
-    setOrderResult(null);
+    setLoadingAccounts(true);
+    setAccountError(null);
+    setAccountResult(null);
 
     try {
-      // Example order - adjust these values for your testing
-      const result = await placeOrder({
-        broker: 'robinhood', // Change to your broker
-        accountNumber: 123456789, // Change to your account number
-        order: {
-          orderType: 'market',
-          assetType: 'equity',
-          action: 'buy',
-          timeInForce: 'day',
-          symbol: 'AAPL',
-          orderQty: 1,
-        },
-      });
-
-      setOrderResult(result);
-      console.log('Order placed successfully:', result);
+      const result = await listAccounts();
+      setAccountResult(result);
+      console.log('Accounts loaded:', result);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to place order';
-      setOrderError(errorMessage);
-      console.error('Error placing order:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load accounts';
+      setAccountError(errorMessage);
+      console.error('Error loading accounts:', err);
     } finally {
-      setPlacingOrder(false);
+      setLoadingAccounts(false);
+    }
+  };
+
+  const handleGetFirstAccount = async () => {
+    const accounts = accountResult?.success?.data ?? accountResult?.data ?? [];
+    const firstAccountId = Array.isArray(accounts) ? accounts[0]?.accountId || accounts[0]?.id : null;
+    if (!firstAccountId) {
+      setAccountError('Load accounts first, then choose an account id from the response.');
+      return;
+    }
+
+    setLoadingAccounts(true);
+    setAccountError(null);
+    try {
+      setAccountResult(await getAccount(firstAccountId));
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : 'Failed to load account');
+    } finally {
+      setLoadingAccounts(false);
     }
   };
 
@@ -181,24 +180,23 @@ function App() {
         {authStatus.isAuthenticated && (
           <div className="data-section">
             <div className="actions">
-              <button
-                onClick={handlePlaceOrder}
-                className="btn btn-primary"
-                disabled={placingOrder}
-              >
-                {placingOrder ? 'Placing Order...' : 'Place Order (Test)'}
+              <button onClick={handleListAccounts} className="btn btn-primary" disabled={loadingAccounts}>
+                {loadingAccounts ? 'Loading...' : 'List Accounts'}
+              </button>
+              <button onClick={handleGetFirstAccount} className="btn btn-secondary" disabled={loadingAccounts || !accountResult}>
+                Get First Account
               </button>
             </div>
 
-            {orderError && (
+            {accountError && (
               <div className="error" style={{ marginTop: '1rem' }}>
-                Order Error: {orderError}
+                Account Error: {accountError}
               </div>
             )}
 
-            {orderResult && (
+            {accountResult && (
               <div className="data-card" style={{ marginTop: '1rem' }}>
-                <h3>Order Result</h3>
+                <h3>Account Result</h3>
                 <pre
                   style={{
                     background: '#f5f5f5',
@@ -208,7 +206,7 @@ function App() {
                     maxHeight: '400px',
                   }}
                 >
-                  {JSON.stringify(orderResult, null, 2)}
+                  {JSON.stringify(accountResult, null, 2)}
                 </pre>
               </div>
             )}

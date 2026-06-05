@@ -452,6 +452,7 @@ export function FinaticProvider({ children }: { children: React.ReactNode }) {
 
       const realFinatic = await FinaticConnect.init(token, existingUserId || undefined, {
         baseUrl: apiUrl,
+        apiEnvironment: mode,
       });
 
       // Add instance ID to the finatic object for tracking

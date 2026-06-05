@@ -37,8 +37,6 @@ sdk_root_dir = os.path.abspath(
         "..",
         "..",
         "..",
-        "SDKs",
-        "Server",
         "FinaticServerSDK-Python",
     )
 )

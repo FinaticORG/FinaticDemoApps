@@ -24,13 +24,13 @@ FINATIC_API_URL=https://api-staging.finatic.dev
 CLI demo:
 
 ```bash
-uv run python test_trading.py
+uv run python demo_cli.py
 ```
 
-API mode:
+Webhook receiver sample:
 
 ```bash
-uv run python run_api.py
+FINATIC_WEBHOOK_SECRET=replace-with-webhook-secret uv run uvicorn webhook_receiver:app --host 0.0.0.0 --port 8080
 ```
 
 ## Related Testing App

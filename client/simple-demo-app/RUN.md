@@ -5,7 +5,7 @@
 1. **Navigate to the directory**:
 
    ```bash
-   cd codebases/demoapps/client/simple-demo-app
+   cd client/simple-demo-app
    ```
 
 2. **Install dependencies**:
@@ -17,13 +17,16 @@
 3. **Create `.env` file**:
 
    ```bash
-   echo "VITE_FINATIC_API_KEY=your_api_key_here" > .env
+   printf "VITE_FINATIC_API_KEY=your_api_key_here\nVITE_FINATIC_ENVIRONMENT=sandbox\nVITE_FINATIC_API_URL=https://api-staging.finatic.dev\nVITE_FINATIC_CONNECT_URL=https://connect.finatic.dev\n" > .env
    ```
 
    Or manually create `.env` with:
 
    ```
    VITE_FINATIC_API_KEY=your_api_key_here
+   VITE_FINATIC_ENVIRONMENT=sandbox
+   VITE_FINATIC_API_URL=https://api-staging.finatic.dev
+   VITE_FINATIC_CONNECT_URL=https://connect.finatic.dev
    ```
 
 4. **Run the app**:
@@ -35,8 +38,9 @@
 5. **Open in browser**:
    - Go to `http://localhost:5174`
    - The app will automatically initialize the SDK
-   - Click "Open Authentication Portal" to authenticate
-   - Once authenticated, click "Load Data" to see your accounts, orders, positions, etc.
+   - Click "Open Authentication Portal" to create a v1 portal link and complete Connect
+   - Once authenticated, click "List Accounts" to read financial accounts
+   - Click "Get First Account" to fetch one account by account id
 
 ## Available Scripts
 
@@ -66,5 +70,5 @@ server: {
 ### SDK not found?
 
 - Make sure you ran `yarn install`
-- The app uses `@finatic/client` from npm (latest version)
-- If you have issues, try: `yarn add @finatic/client@latest`
+- The app uses the local branch-ready `@finatic/client` checkout configured in `package.json`
+- If the package cannot be resolved, make sure the sibling `FinaticClientSDK` checkout exists and is on the recorded v1 branch ref

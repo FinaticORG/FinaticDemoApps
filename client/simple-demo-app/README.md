@@ -1,14 +1,15 @@
 # Finatic Client SDK - Simple Demo
 
-A simple React demo application that demonstrates the Finatic Client SDK usage. This is a minimal example similar to the server SDK demo apps, but with a UI.
+A simple React demo application that demonstrates the Finatic Client SDK account-first v1 flow. This is a minimal browser example similar to the server SDK demo apps, but with a UI.
 
 ## Features
 
 - **Clean Architecture**: SDK logic separated from UI (`src/sdk.ts` vs `src/App.tsx`)
 - **Singleton Pattern**: Single SDK instance managed in `sdk.ts`
 - **Simple API**: Easy-to-understand functions for all SDK operations
-- **Authentication**: Via Finatic portal
-- **Data Display**: Accounts, orders, positions, balances, and brokers
+- **Authentication**: Create a v1 session and open Connect through `/api/v1/sessions/{sessionId}/portal-links`
+- **Data Display**: List financial accounts and fetch the first account by account id
+- **Environment Toggle**: Use sandbox or live by setting `VITE_FINATIC_ENVIRONMENT`
 - **Runs on port 5174** (separate from the main demo app)
 
 ## Project Structure
@@ -26,7 +27,7 @@ src/
 1. **Navigate to the directory**:
 
 ```bash
-cd codebases/demoapps/client/simple-demo-app
+cd client/simple-demo-app
 ```
 
 2. **Install dependencies**:
@@ -35,15 +36,15 @@ cd codebases/demoapps/client/simple-demo-app
 yarn install
 ```
 
-This will install:
-- `@finatic/client` (latest version from npm)
-- React and React DOM
-- Vite and other dev dependencies
+This installs the local branch-ready `@finatic/client` checkout plus React, Vite, and other dev dependencies.
 
 3. **Create a `.env` file** in the `simple-demo-app` directory:
 
 ```bash
 VITE_FINATIC_API_KEY=your_api_key_here
+VITE_FINATIC_ENVIRONMENT=sandbox
+VITE_FINATIC_API_URL=https://api-staging.finatic.dev
+VITE_FINATIC_CONNECT_URL=https://connect.finatic.dev
 ```
 
 **⚠️ Production Note**: In production, you should NOT fetch tokens directly from the frontend. Instead:
@@ -73,9 +74,10 @@ You should see output like:
 ## Usage
 
 1. The app automatically initializes the SDK on load (see `src/sdk.ts`)
-2. Click "Open Authentication Portal" to authenticate
-3. Once authenticated, click "Load Data" to fetch accounts, orders, positions, balances, and brokers
-4. Data will be displayed in cards below
+2. Click "Open Authentication Portal" to create a v1 portal link and complete Connect
+3. Once authenticated, click "List Accounts" to read account data
+4. Click "Get First Account" to fetch one financial account by account id
+5. Data will be displayed in cards below
 
 ## How to Use the SDK
 
@@ -85,8 +87,8 @@ You should see output like:
 - `initializeSDK()` - Initializes the SDK singleton
 - `isAuthenticated()` - Check auth status
 - `getUserId()` - Get current user ID
-- `openPortal()` - Open authentication portal
-- `getBrokers()`, `getAllAccounts()`, etc. - Fetch data
+- `openPortal()` - Create a v1 portal link and open Connect
+- `listAccounts()` and `getAccount(accountId)` - Fetch account-first v1 data
 
 **`src/App.tsx`** - This is pure UI:
 - Displays authentication status
@@ -97,7 +99,7 @@ You should see output like:
 ### Example: Using the SDK in Your Code
 
 ```typescript
-import { initializeSDK, getAllAccounts, isAuthenticated } from './sdk';
+import { initializeSDK, listAccounts, isAuthenticated } from './sdk';
 
 // Initialize once (creates singleton)
 await initializeSDK();
@@ -105,7 +107,7 @@ await initializeSDK();
 // Check auth
 if (isAuthenticated()) {
   // Fetch data
-  const accounts = await getAllAccounts();
+  const accounts = await listAccounts();
   console.log('Accounts:', accounts);
 }
 ```
@@ -142,5 +144,4 @@ This app demonstrates best practices:
 - This app runs separately from the main demo app
 - It's designed to be simple and easy to understand
 - Perfect for quick testing or learning the SDK basics
-- The main demo app remains unchanged and continues to work as before
-
+- The main demo app follows the same v1 session, portal-link, and account-read flow with a fuller UI

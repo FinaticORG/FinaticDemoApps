@@ -72,6 +72,13 @@ const getNearestFriday = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+const createOrderIdempotencyKey = () => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `demo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 const BROKER_ORDER_PRESETS: Record<string, OrderPresetConfig[]> = {
   robinhood: [
     {
@@ -1602,7 +1609,7 @@ export function TradingPageComponent() {
         throw new Error('Broker is required. Please select a broker.');
       }
 
-      // Build nested structure: { broker, accountNumber, order: {...}, connectionId? }
+      // Build v1 account-order body. The financial accountId stays in the URL path.
       const orderObject: any = {
         orderType: customOrder.orderType,
         assetType: customOrder.assetType,
@@ -1640,17 +1647,19 @@ export function TradingPageComponent() {
         order: orderObject,
       };
 
-      // Note: connectionId is optional and can be added if needed
-
       // Debug: Log the order params being sent
       console.log('🔍 placeCustomOrder - orderParams:', JSON.stringify(orderParams, null, 2));
       console.log('🔍 placeCustomOrder - selectedBroker:', selectedBroker);
 
-      // Use SDK's placeOrder method
-      const response = await finatic.placeOrder(orderParams);
+      const response = await finatic.v1.createAccountOrder({
+        accountId: selectedAccountId,
+        body: orderParams,
+        idempotencyKey: createOrderIdempotencyKey(),
+      });
 
+      const result = response?.success?.data as { message?: string } | undefined;
       setCustomResponse(response);
-      addLog('success', `Order placed successfully - ${response?.success?.data?.message || 'ok'}`);
+      addLog('success', `Order placed successfully - ${result?.message || 'ok'}`);
     } catch (e: any) {
       const errorMsg = e?.message || 'Order failed';
       setCustomResponse({ error: errorMsg });
@@ -1718,7 +1727,7 @@ export function TradingPageComponent() {
         return;
       }
 
-      // Build nested structure: { broker, order: {...}, connectionId? }
+      // Build v1 account-order body. The financial accountId stays in the URL path.
       // Extract order fields from parsedPayload (which may have nested structure)
       const orderData = parsedPayload.order || parsedPayload;
 
@@ -1790,15 +1799,19 @@ export function TradingPageComponent() {
       setPresetResponseById((previous) => ({ ...previous, [preset.id]: null }));
 
       try {
-        // Use SDK's placeOrder method
-        const response = await finatic.placeOrder(orderParams);
+        const response = await finatic.v1.createAccountOrder({
+          accountId: selectedAccountId,
+          body: orderParams,
+          idempotencyKey: createOrderIdempotencyKey(),
+        });
 
+        const result = response?.success?.data as { message?: string } | undefined;
         setPresetResponseById((previous) => ({ ...previous, [preset.id]: response }));
         setExpandedResponsePresetIds((previous) => new Set(previous).add(preset.id));
         setCustomResponse(response);
         addLog(
           'success',
-          `Preset "${preset.label}" placed successfully - ${response?.success?.data?.message || 'ok'}`
+          `Preset "${preset.label}" placed successfully - ${result?.message || 'ok'}`
         );
       } catch (error: any) {
         const errorMessage = error?.message || 'Preset order failed';
@@ -1864,12 +1877,17 @@ export function TradingPageComponent() {
     setCancelResponse(null);
 
     try {
-      const response = await finatic.cancelOrder({
+      const response = await finatic.v1.cancelAccountOrder({
+        accountId: selectedAccountId,
         orderId: cancelOrderId.trim(),
-        broker: selectedBroker.trim().toLowerCase(),
-        accountNumber: accountNumberParam,
+        body: {
+          broker: selectedBroker.trim().toLowerCase(),
+          accountNumber: accountNumberParam,
+          order: { orderId: cancelOrderId.trim() },
+        },
+        idempotencyKey: createOrderIdempotencyKey(),
       });
-      const result = response?.success?.data || response;
+      const result = (response?.success?.data || response) as { message?: string };
 
       setCancelResponse(result ?? response);
       addLog('success', `Order cancelled successfully - ${result?.message ?? 'ok'}`);
@@ -1882,7 +1900,7 @@ export function TradingPageComponent() {
     }
   };
 
-  // Build the URL and body preview for cancel order (SDK sends broker + account_number + order in body)
+  // Build the v1 URL and body preview for cancel order.
   const cancelOrderUrlPreview = useMemo(() => {
     if (!cancelOrderId || !selectedBroker || !selectedAccountId) return null;
 
@@ -1893,11 +1911,11 @@ export function TradingPageComponent() {
 
     return {
       method: 'DELETE',
-      url: `/api/beta/brokers/orders/${cancelOrderId}`,
+      url: `/api/v1/accounts/${selectedAccountId}/orders/${cancelOrderId}`,
       body: {
         broker: selectedBroker.trim().toLowerCase(),
-        account_number: Number(accountNumber) || accountNumber,
-        order: { order_id: cancelOrderId },
+        accountNumber: Number(accountNumber) || accountNumber,
+        order: { orderId: cancelOrderId },
       },
       queryParams: null,
     };
@@ -2049,14 +2067,18 @@ export function TradingPageComponent() {
       }
 
       const modifyParams: any = {
+        accountId: selectedAccountId,
         orderId: modifyOrderId,
-        broker: selectedBroker.trim().toLowerCase(),
-        accountNumber,
-        order: orderObject,
+        body: {
+          broker: selectedBroker.trim().toLowerCase(),
+          accountNumber,
+          order: orderObject,
+        },
+        idempotencyKey: createOrderIdempotencyKey(),
       };
 
-      const response = await finatic.modifyOrder(modifyParams);
-      const result = response?.success?.data || response;
+      const response = await finatic.v1.modifyAccountOrder(modifyParams);
+      const result = (response?.success?.data || response) as { message?: string };
 
       setModifyResponse(result);
       addLog('success', `Order modified successfully - ${result?.message || 'ok'}`);

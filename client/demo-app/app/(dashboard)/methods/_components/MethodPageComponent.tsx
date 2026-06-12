@@ -34,6 +34,27 @@ function parseOptionalJson(raw?: string, label?: string) {
   }
 }
 
+function parseV1Query(raw?: string, label = "query JSON") {
+  const parsed = parseOptionalJson(raw, label);
+  if (parsed == null) return {};
+  if (typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${label} must be a JSON object`);
+  }
+  const query = { ...(parsed as Record<string, unknown>) };
+  if ("connectionId" in query) {
+    throw new Error("Use financial accountId for v1 resources; connectionId is internal only.");
+  }
+  return query;
+}
+
+function prepareAccountScopedArgs(fieldValues: Record<string, string> | undefined) {
+  const accountId = fieldValues?.accountId?.trim();
+  if (!accountId) {
+    throw new Error("Enter a financial accountId.");
+  }
+  return [{ ...parseV1Query(fieldValues?.filter, "query JSON"), accountId }];
+}
+
 export function MethodPageComponent() {
   const methodGroups = useMemo<MethodGroup[]>(() => {
     const groups: MethodGroup[] = [];
@@ -197,41 +218,39 @@ export function MethodPageComponent() {
         key: "getAccounts",
         label: "Get accounts",
         description:
-          "Retrieves paginated accounts with built-in pagination controls.",
+          "Retrieves paginated account-first v1 accounts.",
         input: {
           type: "fields",
           fields: [
             {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: '{"status":"active"}',
-              description: "Optional filter payload (JSON).",
+              label: "Query JSON",
+              placeholder: '{"includeSyncStatus":true,"limit":50,"offset":0}',
+              description: "Optional v1 listAccounts query JSON.",
             },
           ],
         },
         prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
+          return [parseV1Query(fieldValues?.filter, "query JSON")];
         },
       },
       {
         key: "getAllAccounts",
         label: "Get all accounts",
         description:
-          "Iterates through pagination to return the full account list.",
+          "Runs the v1 account list helper; use limit/offset for pagination.",
         input: {
           type: "fields",
           fields: [
             {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: '{"status":"active"}',
+              label: "Query JSON",
+              placeholder: '{"includeSyncStatus":true,"limit":100}',
             },
           ],
         },
         prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
+          return [parseV1Query(fieldValues?.filter, "query JSON")];
         },
       },
     ];
@@ -254,35 +273,40 @@ export function MethodPageComponent() {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+              description: "Required v1 financial account id.",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: '{"currency":"USD"}',
+              label: "Query JSON",
+              placeholder: '{"currency":"USD","limit":50,"offset":0}',
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
       {
         key: "getAllBalances",
         label: "Get all balances",
-        description: "Aggregates balances by iterating through pagination.",
+        description: "Runs the account-scoped v1 balances helper.",
         input: {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: '{"currency":"USD"}',
+              label: "Query JSON",
+              placeholder: '{"currency":"USD","limit":100}',
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
     ];
 
@@ -303,38 +327,43 @@ export function MethodPageComponent() {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+              description: "Required v1 financial account id.",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
+              label: "Query JSON",
               placeholder:
-                '{"accountId":"","transactionType":"DIVIDEND","startDate":"","endDate":"","limit":50,"offset":0}',
+                '{"transactionType":"DIVIDEND","startDate":"","endDate":"","limit":50,"offset":0}',
               description:
-                "Optional GetTransactionsParams (brokerId, connectionId, accountId, transactionType, dates, limit, offset, …).",
+                "Optional account-scoped v1 transaction query JSON.",
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
       {
         key: "getAllTransactions",
         label: "Get all transactions",
-        description: "Aggregates transactions by iterating across every page.",
+        description: "Runs the account-scoped v1 transaction helper.",
         input: {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: '{"connectionId":"","accountId":""}',
+              label: "Query JSON",
+              placeholder: '{"limit":100,"offset":0}',
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
     ];
 
@@ -351,41 +380,46 @@ export function MethodPageComponent() {
         key: "getOrders",
         label: "Get orders",
         description:
-          "Retrieves paginated orders with built-in pagination controls.",
+          "Retrieves account-scoped v1 orders.",
         input: {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+              description: "Required v1 financial account id.",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: '{"status":"filled"}',
-              description: "Optional filter payload (JSON).",
+              label: "Query JSON",
+              placeholder: '{"status":"filled","limit":50,"offset":0}',
+              description: "Optional account-scoped v1 order query JSON.",
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
       {
         key: "getAllOrders",
         label: "Get all orders",
-        description: "Aggregates orders by iterating across every page.",
+        description: "Runs the account-scoped v1 orders helper.",
         input: {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: '{"status":"pending"}',
+              label: "Query JSON",
+              placeholder: '{"status":"pending","limit":100}',
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
       {
         key: "getOrderFills",
@@ -395,6 +429,12 @@ export function MethodPageComponent() {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+              description: "Required v1 financial account id.",
+            },
+            {
               name: "orderId",
               label: "Order ID",
               placeholder: "order-uuid",
@@ -402,34 +442,22 @@ export function MethodPageComponent() {
             },
             {
               name: "filter",
-              label: "Filter JSON",
+              label: "Query JSON",
               placeholder: "{}",
-              description: "Optional filter payload (JSON).",
+              description: "Optional account-scoped v1 query JSON.",
             },
           ],
         },
         prepareArgs: ({ fieldValues }) => {
+          const accountId = fieldValues?.accountId?.trim();
+          if (!accountId) {
+            throw new Error("Enter a financial accountId.");
+          }
           const orderId = fieldValues?.orderId?.trim();
           if (!orderId) {
             throw new Error("Enter an order ID.");
           }
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          const params: {
-            orderId: string;
-            connectionId?: string;
-            limit?: number;
-            offset?: number;
-            includeMetadata?: boolean;
-          } = { orderId };
-          if (filter && typeof filter === "object" && !Array.isArray(filter)) {
-            if (filter.connectionId != null)
-              params.connectionId = String(filter.connectionId);
-            if (filter.limit != null) params.limit = Number(filter.limit);
-            if (filter.offset != null) params.offset = Number(filter.offset);
-            if (filter.includeMetadata != null)
-              params.includeMetadata = Boolean(filter.includeMetadata);
-          }
-          return [params];
+          return [{ ...parseV1Query(fieldValues?.filter, "query JSON"), accountId, orderId }];
         },
       },
       {
@@ -440,6 +468,12 @@ export function MethodPageComponent() {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+              description: "Required v1 financial account id.",
+            },
+            {
               name: "orderId",
               label: "Order ID",
               placeholder: "order-uuid",
@@ -447,74 +481,22 @@ export function MethodPageComponent() {
             },
             {
               name: "filter",
-              label: "Filter JSON",
+              label: "Query JSON",
               placeholder: "{}",
-              description: "Optional filter payload (JSON).",
+              description: "Optional account-scoped v1 query JSON.",
             },
           ],
         },
         prepareArgs: ({ fieldValues }) => {
+          const accountId = fieldValues?.accountId?.trim();
+          if (!accountId) {
+            throw new Error("Enter a financial accountId.");
+          }
           const orderId = fieldValues?.orderId?.trim();
           if (!orderId) {
             throw new Error("Enter an order ID.");
           }
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          const params: {
-            orderId: string;
-            connectionId?: string;
-            limit?: number;
-            offset?: number;
-            includeMetadata?: boolean;
-          } = { orderId };
-          if (filter && typeof filter === "object" && !Array.isArray(filter)) {
-            if (filter.connectionId != null)
-              params.connectionId = String(filter.connectionId);
-            if (filter.limit != null) params.limit = Number(filter.limit);
-            if (filter.offset != null) params.offset = Number(filter.offset);
-            if (filter.includeMetadata != null)
-              params.includeMetadata = Boolean(filter.includeMetadata);
-          }
-          return [params];
-        },
-      },
-      {
-        key: "getOrderGroups",
-        label: "Get order groups",
-        description:
-          "Retrieves paginated order groups with built-in pagination controls.",
-        input: {
-          type: "fields",
-          fields: [
-            {
-              name: "filter",
-              label: "Filter JSON",
-              placeholder: "{}",
-              description: "Optional filter payload (JSON).",
-            },
-          ],
-        },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return [filter];
-        },
-      },
-      {
-        key: "getAllOrderGroups",
-        label: "Get all order groups",
-        description: "Aggregates order groups by iterating across every page.",
-        input: {
-          type: "fields",
-          fields: [
-            {
-              name: "filter",
-              label: "Filter JSON",
-              placeholder: "{}",
-            },
-          ],
-        },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return [filter];
+          return [{ ...parseV1Query(fieldValues?.filter, "query JSON"), accountId, orderId }];
         },
       },
     ];
@@ -522,7 +504,7 @@ export function MethodPageComponent() {
     groups.push({
       key: "orders",
       title: "Order data",
-      description: "Validate historical, open, and paginated broker orders.",
+      description: "Validate historical and open account-scoped v1 orders.",
       methods: orderMethods,
     });
 
@@ -531,81 +513,91 @@ export function MethodPageComponent() {
         key: "getPositions",
         label: "Get positions",
         description:
-          "Retrieves paginated positions with built-in pagination controls.",
+          "Retrieves account-scoped v1 positions.",
         input: {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+              description: "Required v1 financial account id.",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: '{"position_status":"open"}',
-              description: "Optional filter payload (JSON).",
+              label: "Query JSON",
+              placeholder: '{"position_status":"open","limit":50,"offset":0}',
+              description: "Optional account-scoped v1 position query JSON.",
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
       {
         key: "getAllPositions",
         label: "Get all positions",
-        description: "Aggregates positions across the full result set.",
+        description: "Runs the account-scoped v1 positions helper.",
         input: {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: '{"position_status":"open"}',
+              label: "Query JSON",
+              placeholder: '{"position_status":"open","limit":100}',
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return filter ? [filter] : [];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
       {
         key: "getPositionLots",
         label: "Get position lots",
         description:
-          "Retrieves paginated position lots with built-in pagination controls.",
+          "Retrieves account-scoped v1 position lots.",
         input: {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+              description: "Required v1 financial account id.",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: "{}",
-              description: "Optional filter payload (JSON).",
+              label: "Query JSON",
+              placeholder: '{"limit":50,"offset":0}',
+              description: "Optional account-scoped v1 position-lots query JSON.",
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return [filter];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
       {
         key: "getAllPositionLots",
         label: "Get all position lots",
-        description: "Aggregates position lots by iterating across every page.",
+        description: "Runs the account-scoped v1 position-lots helper.",
         input: {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+            },
+            {
               name: "filter",
-              label: "Filter JSON",
-              placeholder: "{}",
+              label: "Query JSON",
+              placeholder: '{"limit":100}',
             },
           ],
         },
-        prepareArgs: ({ fieldValues }) => {
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return [filter];
-        },
+        prepareArgs: ({ fieldValues }) => prepareAccountScopedArgs(fieldValues),
       },
       {
         key: "getPositionLotFills",
@@ -615,6 +607,12 @@ export function MethodPageComponent() {
           type: "fields",
           fields: [
             {
+              name: "accountId",
+              label: "Financial accountId",
+              placeholder: "acct_...",
+              description: "Required v1 financial account id.",
+            },
+            {
               name: "lotId",
               label: "Lot ID",
               placeholder: "lot-uuid",
@@ -622,19 +620,22 @@ export function MethodPageComponent() {
             },
             {
               name: "filter",
-              label: "Filter JSON",
+              label: "Query JSON",
               placeholder: "{}",
-              description: "Optional filter payload (JSON).",
+              description: "Optional account-scoped v1 query JSON.",
             },
           ],
         },
         prepareArgs: ({ fieldValues }) => {
+          const accountId = fieldValues?.accountId?.trim();
+          if (!accountId) {
+            throw new Error("Enter a financial accountId.");
+          }
           const lotId = fieldValues?.lotId?.trim();
           if (!lotId) {
             throw new Error("Enter a lot ID.");
           }
-          const filter = parseOptionalJson(fieldValues?.filter, "filter");
-          return [lotId, filter];
+          return [{ ...parseV1Query(fieldValues?.filter, "query JSON"), accountId, lotId }];
         },
       },
     ];
@@ -642,7 +643,7 @@ export function MethodPageComponent() {
     groups.push({
       key: "positions",
       title: "Position data",
-      description: "Inspect open, closed, and broker scoped positions.",
+      description: "Inspect account-scoped v1 positions and position lots.",
       methods: positionMethods,
     });
 

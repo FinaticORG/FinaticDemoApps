@@ -82,6 +82,24 @@ export type MethodGroup = {
   methods: MethodDefinition[];
 };
 
+const v1MethodMap: Record<string, string> = {
+  getAccounts: "listAccounts",
+  getAllAccounts: "listAccounts",
+  getBalances: "listBalances",
+  getAllBalances: "listBalances",
+  getTransactions: "listTransactions",
+  getAllTransactions: "listTransactions",
+  getOrders: "listOrders",
+  getAllOrders: "listOrders",
+  getOrderFills: "getAccountOrderFills",
+  getOrderEvents: "getAccountOrderEvents",
+  getPositions: "listPositions",
+  getAllPositions: "listPositions",
+  getPositionLots: "listPositionLots",
+  getAllPositionLots: "listPositionLots",
+  getPositionLotFills: "getAccountPositionLotFills",
+};
+
 export type HarnessContext = {
   records: Record<string, MethodExecutionRecord | undefined>;
   pagination: Record<string, unknown>;
@@ -392,6 +410,18 @@ export function MethodHarness({
         if (actualMethodName === "openPortal") {
           await openPortal();
           methodResult = { opened: true, route: "/api/v1/sessions/{sessionId}/portal-links" };
+        } else if (actualMethodName in v1MethodMap) {
+          const v1 = (finatic as unknown as { v1?: Record<string, unknown> }).v1;
+          const v1MethodName = v1MethodMap[actualMethodName];
+          const target = v1?.[v1MethodName];
+          if (typeof target !== "function") {
+            throw new Error(
+              `Method finatic.v1.${v1MethodName} is not available on FinaticConnect`,
+            );
+          }
+          methodResult = await Promise.resolve(
+            (target as (...args: any[]) => unknown).apply(v1, args),
+          );
         } else {
           const target = (finatic as unknown as Record<string, unknown>)[
             actualMethodName

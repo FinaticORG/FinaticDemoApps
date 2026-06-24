@@ -26,7 +26,7 @@ jobs:
         with:
           repository: FinaticORG/FinaticClientSDK
           ref: fdx-account-consent-v1
-          path: ../FinaticClientSDK
+          path: sdks/FinaticClientSDK
 
       - uses: actions/setup-node@v4
         with:
@@ -34,14 +34,14 @@ jobs:
           cache: npm
           cache-dependency-path: |
             client/demo-app/package-lock.json
-            ../FinaticClientSDK/package-lock.json
+            sdks/FinaticClientSDK/package-lock.json
 
       - name: Build Client SDK
-        working-directory: ../FinaticClientSDK
+        working-directory: sdks/FinaticClientSDK
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        run: echo "@finatic/client:file:../../FinaticClientSDK" > .npmrc
+        run: echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
 
       - name: Install dependencies
         run: npm install
@@ -65,7 +65,7 @@ jobs:
         with:
           repository: FinaticORG/FinaticClientSDK
           ref: fdx-account-consent-v1
-          path: ../FinaticClientSDK
+          path: sdks/FinaticClientSDK
 
       - uses: actions/setup-node@v4
         with:
@@ -73,14 +73,14 @@ jobs:
           cache: npm
           cache-dependency-path: |
             client/simple-demo-app/package-lock.json
-            ../FinaticClientSDK/package-lock.json
+            sdks/FinaticClientSDK/package-lock.json
 
       - name: Build Client SDK
-        working-directory: ../FinaticClientSDK
+        working-directory: sdks/FinaticClientSDK
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        run: echo "@finatic/client:file:../../FinaticClientSDK" > .npmrc
+        run: echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
 
       - name: Install dependencies
         run: npm install
@@ -101,7 +101,7 @@ jobs:
         with:
           repository: FinaticORG/FinaticServerSDK-Node
           ref: fdx-account-consent-v1
-          path: ../FinaticServerSDK-Node
+          path: sdks/FinaticServerSDK-Node
 
       - uses: actions/setup-node@v4
         with:
@@ -109,14 +109,14 @@ jobs:
           cache: npm
           cache-dependency-path: |
             server-node/demo-app/package-lock.json
-            ../FinaticServerSDK-Node/package-lock.json
+            sdks/FinaticServerSDK-Node/package-lock.json
 
       - name: Build Server Node SDK
-        working-directory: ../FinaticServerSDK-Node
+        working-directory: sdks/FinaticServerSDK-Node
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        run: echo "@finatic/server-node:file:../../FinaticServerSDK-Node" > .npmrc
+        run: echo "@finatic/server-node:file:../../sdks/FinaticServerSDK-Node" > .npmrc
 
       - name: Install dependencies
         run: npm install

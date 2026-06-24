@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useTheme } from "next-themes"
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   BarChart3,
   Database,
@@ -20,12 +20,12 @@ import {
   Sun,
   Moon,
   Computer,
-} from "lucide-react"
+} from "lucide-react";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const navigation = [
   {
@@ -79,24 +79,25 @@ const navigation = [
       },
     ],
   },
-]
+];
 
-type AppSidebarProps = React.ComponentProps<"div">
+type AppSidebarProps = React.ComponentProps<"div">;
 
 export function AppSidebar({ className, ...props }: AppSidebarProps) {
-  const pathname = usePathname()
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = React.useState(false)
+  const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   const cycleTheme = React.useCallback(() => {
-    const current = theme ?? "system"
-    const next = current === "system" ? "light" : current === "light" ? "dark" : "system"
-    setTheme(next)
-  }, [setTheme, theme])
+    const current = theme ?? "system";
+    const next =
+      current === "system" ? "light" : current === "light" ? "dark" : "system";
+    setTheme(next);
+  }, [setTheme, theme]);
 
   const ThemeIcon = !mounted
     ? Computer
@@ -104,7 +105,7 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
       ? Sun
       : theme === "dark"
         ? Moon
-        : Computer
+        : Computer;
 
   return (
     <div
@@ -150,12 +151,15 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
                       variant="ghost"
                       className={cn(
                         "w-full justify-start gap-3 text-left font-normal hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                        pathname === item.url && "bg-sidebar-accent text-sidebar-accent-foreground",
+                        pathname === item.url &&
+                          "bg-sidebar-accent text-sidebar-accent-foreground",
                       )}
                     >
                       <item.icon className="h-4 w-4" />
                       {item.title}
-                      {pathname === item.url && <ChevronRight className="ml-auto h-4 w-4" />}
+                      {pathname === item.url && (
+                        <ChevronRight className="ml-auto h-4 w-4" />
+                      )}
                     </Button>
                   </Link>
                 ))}
@@ -177,5 +181,5 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
         </button>
       </div>
     </div>
-  )
+  );
 }

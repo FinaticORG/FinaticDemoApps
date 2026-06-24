@@ -1,20 +1,26 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useFinatic } from '@/app/providers/FinaticProvider';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useFinatic } from "@/app/providers/FinaticProvider";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   CheckCircle2,
   CircleX,
@@ -24,24 +30,27 @@ import {
   RefreshCw,
   ChevronDown,
   Palette,
-} from 'lucide-react';
-import type { BrokerInfo } from '@finatic/client';
+} from "lucide-react";
+import {
+  FDX_V1_PROVIDER_MATRIX,
+  toPortalBrokerInfo,
+} from "@/lib/fdx-provider-matrix";
 
 type PortalEvent = { type: string; data: unknown; timestamp: string };
-type PortalStage = 'production' | 'beta' | 'alpha';
+type PortalStage = "production" | "beta" | "alpha";
 
 const PORTAL_ASSET_TYPE_OPTIONS = [
-  { value: 'equity', label: 'Equity' },
-  { value: 'equity_option', label: 'Equity option' },
-  { value: 'crypto', label: 'Crypto' },
-  { value: 'future', label: 'Future' },
-  { value: 'future_option', label: 'Future option' },
+  { value: "equity", label: "Equity" },
+  { value: "equity_option", label: "Equity option" },
+  { value: "crypto", label: "Crypto" },
+  { value: "future", label: "Future" },
+  { value: "future_option", label: "Future option" },
 ] as const;
 
 const PORTAL_STAGE_OPTIONS = [
-  { value: 'production' as PortalStage, label: 'Production' },
-  { value: 'beta' as PortalStage, label: 'Beta' },
-  { value: 'alpha' as PortalStage, label: 'Alpha' },
+  { value: "production" as PortalStage, label: "Production" },
+  { value: "beta" as PortalStage, label: "Beta" },
+  { value: "alpha" as PortalStage, label: "Alpha" },
 ] as const;
 
 // Removed hard-coded brokers. We'll load from SDK.
@@ -60,18 +69,22 @@ export default function PortalPageComponent(): JSX.Element {
     logout,
     isLoading,
   } = useFinatic();
-  const [portalMessage, setPortalMessage] = useState<string>('');
-  const [portalError, setPortalError] = useState<string>('');
+  const [portalMessage, setPortalMessage] = useState<string>("");
+  const [portalError, setPortalError] = useState<string>("");
   const [portalEvents, setPortalEvents] = useState<PortalEvent[]>([]);
   const [selectedBrokers, setSelectedBrokers] = useState<string[]>([]);
-  const [emailParam, setEmailParam] = useState<string>('');
-  const [themePreset, setThemePreset] = useState<string>('');
-  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>('system');
-  const [portalKind, setPortalKind] = useState<string>('');
+  const [emailParam, setEmailParam] = useState<string>("");
+  const [themePreset, setThemePreset] = useState<string>("");
+  const [themeMode, setThemeMode] = useState<"light" | "dark" | "system">(
+    "system",
+  );
+  const [portalKind, setPortalKind] = useState<string>("");
   const [portalAssetTypes, setPortalAssetTypes] = useState<string[]>([]);
   const [portalStages, setPortalStages] = useState<PortalStage[]>([]);
-  const [availableBrokers, setAvailableBrokers] = useState<BrokerInfo[] | null>(null);
-  const [brokersError, setBrokersError] = useState<string>('');
+  const [availableBrokers, setAvailableBrokers] = useState<
+    ReturnType<typeof toPortalBrokerInfo>[] | null
+  >(FDX_V1_PROVIDER_MATRIX.map(toPortalBrokerInfo));
+  const [brokersError, setBrokersError] = useState<string>("");
   const [brokersLoading, setBrokersLoading] = useState<boolean>(false);
 
   const [optionsOpen, setOptionsOpen] = useState<boolean>(true);
@@ -80,7 +93,7 @@ export default function PortalPageComponent(): JSX.Element {
   // Persist portal event history for the current day
   const getDayKey = useCallback(
     () => `finatic-portal-events-${new Date().toISOString().slice(0, 10)}`,
-    []
+    [],
   );
 
   const loadHistory = useCallback(() => {
@@ -100,18 +113,18 @@ export default function PortalPageComponent(): JSX.Element {
         localStorage.setItem(getDayKey(), JSON.stringify(events));
       } catch {}
     },
-    [getDayKey]
+    [getDayKey],
   );
 
   const appendEvent = useCallback(
     (event: PortalEvent) => {
-      setPortalEvents(prev => {
+      setPortalEvents((prev) => {
         const next = [...prev, event];
         saveHistory(next);
         return next;
       });
     },
-    [saveHistory]
+    [saveHistory],
   );
 
   useEffect(() => {
@@ -130,7 +143,7 @@ export default function PortalPageComponent(): JSX.Element {
   // Load email prefill from localStorage on mount
   useEffect(() => {
     try {
-      const savedEmail = localStorage.getItem('finatic-portal-email-prefill');
+      const savedEmail = localStorage.getItem("finatic-portal-email-prefill");
       if (savedEmail) {
         setEmailParam(savedEmail);
       }
@@ -143,9 +156,9 @@ export default function PortalPageComponent(): JSX.Element {
   useEffect(() => {
     try {
       if (emailParam.trim()) {
-        localStorage.setItem('finatic-portal-email-prefill', emailParam.trim());
+        localStorage.setItem("finatic-portal-email-prefill", emailParam.trim());
       } else {
-        localStorage.removeItem('finatic-portal-email-prefill');
+        localStorage.removeItem("finatic-portal-email-prefill");
       }
     } catch {
       // Ignore localStorage errors
@@ -157,54 +170,39 @@ export default function PortalPageComponent(): JSX.Element {
       localStorage.removeItem(getDayKey());
     } catch {}
     setPortalEvents([]);
-    addLog('info', 'Cleared portal events for today');
+    addLog("info", "Cleared portal events for today");
   }, [getDayKey, addLog]);
 
-  // Load broker list regardless of auth
+  // Provider matrix is the canonical v1 broker catalogue (no beta connection APIs).
   useEffect(() => {
-    let cancelled = false;
-    async function loadBrokers() {
-      if (!finatic) return;
-      try {
-        setBrokersLoading(true);
-        setBrokersError('');
-        const response = await finatic.getBrokers();
-        // Extract data from FinaticResponse
-        const list = response?.success?.data || response;
-        if (!cancelled) {
-          // Ensure list is always an array
-          const brokerArray: BrokerInfo[] = Array.isArray(list) 
-            ? (list as BrokerInfo[]) 
-            : (Object.values(list || {}) as BrokerInfo[]);
-          setAvailableBrokers(brokerArray);
-        }
-      } catch (err: any) {
-        if (!cancelled) {
-          setBrokersError(err?.message || 'Failed to load brokers');
-        }
-      } finally {
-        if (!cancelled) setBrokersLoading(false);
-      }
-    }
-    void loadBrokers();
-    return () => {
-      cancelled = true;
-    };
+    setAvailableBrokers(FDX_V1_PROVIDER_MATRIX.map(toPortalBrokerInfo));
+    setBrokersLoading(false);
+    setBrokersError("");
   }, [finatic]);
 
-  const brokerFilter: string[] = useMemo(() => selectedBrokers, [selectedBrokers]);
+  const brokerFilter: string[] = useMemo(
+    () => selectedBrokers,
+    [selectedBrokers],
+  );
   // Only show default and stockAlgos presets
-  const themeOptions = useMemo(() => ['default', 'stockAlgos'], []);
+  const themeOptions = useMemo(() => ["default", "stockAlgos"], []);
 
   const handleOpenPortal = useCallback(async () => {
     if (!finatic) return;
-    addLog('info', 'Opening portal...');
-    setPortalMessage('');
-    setPortalError('');
-    appendEvent({ type: 'portal-open', data: {}, timestamp: new Date().toLocaleTimeString() });
+    addLog("info", "Opening portal...");
+    setPortalMessage("");
+    setPortalError("");
+    appendEvent({
+      type: "portal-open",
+      data: {},
+      timestamp: new Date().toLocaleTimeString(),
+    });
 
     if (brokerFilter.length > 0) {
-      addLog('info', `Filtering portal to show brokers: ${brokerFilter.join(', ')}`);
+      addLog(
+        "info",
+        `Filtering portal to show brokers: ${brokerFilter.join(", ")}`,
+      );
     }
 
     try {
@@ -212,74 +210,92 @@ export default function PortalPageComponent(): JSX.Element {
       if (brokerFilter.length > 0) options.brokers = brokerFilter;
       if (emailParam.trim()) {
         options.email = emailParam.trim();
-        addLog('info', `Opening portal with email prefill: ${emailParam.trim()}`);
+        addLog(
+          "info",
+          `Opening portal with email prefill: ${emailParam.trim()}`,
+        );
       }
       if (themePreset.trim()) {
         options.theme = { preset: themePreset.trim() };
-        addLog('info', `Opening portal with theme preset: ${themePreset.trim()}`);
+        addLog(
+          "info",
+          `Opening portal with theme preset: ${themePreset.trim()}`,
+        );
       }
       // Add mode only if not system (system is default, so don't pass it)
-      if (themeMode !== 'system') {
+      if (themeMode !== "system") {
         options.mode = themeMode;
-        addLog('info', `Opening portal with mode: ${themeMode}`);
+        addLog("info", `Opening portal with mode: ${themeMode}`);
       }
-      if (portalKind === 'broker' || portalKind === 'exchange') {
+      if (portalKind === "broker" || portalKind === "exchange") {
         options.kind = portalKind;
-        addLog('info', `Opening portal with kind: ${portalKind}`);
+        addLog("info", `Opening portal with kind: ${portalKind}`);
       }
       if (portalAssetTypes.length > 0) {
         options.asset_types = portalAssetTypes;
-        addLog('info', `Opening portal with asset_types: ${portalAssetTypes.join(', ')}`);
+        addLog(
+          "info",
+          `Opening portal with asset_types: ${portalAssetTypes.join(", ")}`,
+        );
       }
       if (portalStages.length > 0) {
         options.stage = portalStages;
-        addLog('info', `Opening portal with stages: ${portalStages.join(', ')}`);
+        addLog(
+          "info",
+          `Opening portal with stages: ${portalStages.join(", ")}`,
+        );
       }
 
       await openPortal({
         ...options,
         onSuccess: async (userId: string) => {
-          addLog('success', `Portal opened successfully for user: ${userId}`);
-          setPortalMessage('Portal opened successfully');
+          addLog("success", `Portal opened successfully for user: ${userId}`);
+          setPortalMessage("Portal opened successfully");
           // Set auth state immediately (SDK already stored userId internally)
           setAuthState(true, userId);
           setStoredUserId(userId);
-          addLog('info', `Stored userId in localStorage: ${userId}`);
+          addLog("info", `Stored userId in localStorage: ${userId}`);
           // Verify auth state
           await checkAuth();
           appendEvent({
-            type: 'portal-success',
+            type: "portal-success",
             data: { userId },
             timestamp: new Date().toLocaleTimeString(),
           });
         },
         onError: (error: Error) => {
           setPortalError(error.message);
-          addLog('error', error.message);
+          addLog("error", error.message);
           appendEvent({
-            type: 'portal-error',
+            type: "portal-error",
             data: { message: error.message },
             timestamp: new Date().toLocaleTimeString(),
           });
         },
         onClose: () => {
-          addLog('info', 'Portal closed');
+          addLog("info", "Portal closed");
           appendEvent({
-            type: 'portal-close',
+            type: "portal-close",
             data: {},
             timestamp: new Date().toLocaleTimeString(),
           });
         },
         onEvent: (type: string, data: unknown) => {
-          addLog('info', `Portal event: ${type} - ${JSON.stringify(data)}`);
-          appendEvent({ type, data, timestamp: new Date().toLocaleTimeString() });
+          addLog("info", `Portal event: ${type} - ${JSON.stringify(data)}`);
+          appendEvent({
+            type,
+            data,
+            timestamp: new Date().toLocaleTimeString(),
+          });
         },
       } as any);
     } catch (err: any) {
       const errorMsg =
-        typeof err?.message === 'string' ? err.message : String(err) || 'Unknown error';
+        typeof err?.message === "string"
+          ? err.message
+          : String(err) || "Unknown error";
       setPortalError(errorMsg);
-      addLog('error', errorMsg);
+      addLog("error", errorMsg);
     }
   }, [
     finatic,
@@ -298,7 +314,6 @@ export default function PortalPageComponent(): JSX.Element {
     appendEvent,
   ]);
 
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -316,7 +331,11 @@ export default function PortalPageComponent(): JSX.Element {
       </div>
 
       <div className="flex justify-center">
-        <Button onClick={handleOpenPortal} disabled={!finatic} className="gap-2 px-6">
+        <Button
+          onClick={handleOpenPortal}
+          disabled={!finatic}
+          className="gap-2 px-6"
+        >
           <DoorOpen className="size-4" /> Open Portal
         </Button>
       </div>
@@ -345,7 +364,7 @@ export default function PortalPageComponent(): JSX.Element {
         <CardHeader>
           <button
             type="button"
-            onClick={() => setOptionsOpen(v => !v)}
+            onClick={() => setOptionsOpen((v) => !v)}
             className="flex w-full items-center justify-between"
           >
             <div className="text-left">
@@ -355,7 +374,7 @@ export default function PortalPageComponent(): JSX.Element {
               </CardDescription>
             </div>
             <ChevronDown
-              className={`size-4 transition-transform ${optionsOpen ? 'rotate-180' : ''}`}
+              className={`size-4 transition-transform ${optionsOpen ? "rotate-180" : ""}`}
             />
           </button>
         </CardHeader>
@@ -372,12 +391,12 @@ export default function PortalPageComponent(): JSX.Element {
                     type="email"
                     placeholder="name@example.com"
                     value={emailParam}
-                    onChange={e => setEmailParam(e.target.value)}
+                    onChange={(e) => setEmailParam(e.target.value)}
                   />
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setEmailParam('')}
+                    onClick={() => setEmailParam("")}
                     aria-label="Clear email prefill"
                   >
                     <Trash2 className="size-4" />
@@ -391,25 +410,32 @@ export default function PortalPageComponent(): JSX.Element {
                 </Label>
                 <div className="flex gap-2">
                   <Select
-                    value={themePreset || 'default'}
-                    onValueChange={v => setThemePreset(v === 'default' ? '' : v)}
+                    value={themePreset || "default"}
+                    onValueChange={(v) =>
+                      setThemePreset(v === "default" ? "" : v)
+                    }
                   >
-                    <SelectTrigger className="flex-1" aria-label="Select theme preset">
+                    <SelectTrigger
+                      className="flex-1"
+                      aria-label="Select theme preset"
+                    >
                       <SelectValue placeholder="Default" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="default">Default</SelectItem>
-                      {themeOptions.filter(opt => opt !== 'default').map(opt => (
-                        <SelectItem key={opt} value={opt}>
-                          {opt}
-                        </SelectItem>
-                      ))}
+                      {themeOptions
+                        .filter((opt) => opt !== "default")
+                        .map((opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setThemePreset('')}
+                    onClick={() => setThemePreset("")}
                     aria-label="Clear theme preset"
                   >
                     <Trash2 className="size-4" />
@@ -424,9 +450,14 @@ export default function PortalPageComponent(): JSX.Element {
                 <div className="flex gap-2">
                   <Select
                     value={themeMode}
-                    onValueChange={v => setThemeMode(v as 'light' | 'dark' | 'system')}
+                    onValueChange={(v) =>
+                      setThemeMode(v as "light" | "dark" | "system")
+                    }
                   >
-                    <SelectTrigger className="flex-1" aria-label="Select theme mode">
+                    <SelectTrigger
+                      className="flex-1"
+                      aria-label="Select theme mode"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -438,7 +469,7 @@ export default function PortalPageComponent(): JSX.Element {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setThemeMode('system')}
+                    onClick={() => setThemeMode("system")}
                     aria-label="Reset to system mode"
                   >
                     <Trash2 className="size-4" />
@@ -449,10 +480,14 @@ export default function PortalPageComponent(): JSX.Element {
               <div className="grid gap-2">
                 <Label htmlFor="kind">Kind (optional)</Label>
                 <Select
-                  value={portalKind || 'none'}
-                  onValueChange={v => setPortalKind(v === 'none' ? '' : v)}
+                  value={portalKind || "none"}
+                  onValueChange={(v) => setPortalKind(v === "none" ? "" : v)}
                 >
-                  <SelectTrigger id="kind" className="flex-1" aria-label="Filter by provider type">
+                  <SelectTrigger
+                    id="kind"
+                    className="flex-1"
+                    aria-label="Filter by provider type"
+                  >
                     <SelectValue placeholder="No filter" />
                   </SelectTrigger>
                   <SelectContent>
@@ -462,74 +497,90 @@ export default function PortalPageComponent(): JSX.Element {
                   </SelectContent>
                 </Select>
                 <p className="text-muted-foreground text-xs">
-                  Show only brokers or only exchanges (e.g. crypto) in the portal.
+                  Show only brokers or only exchanges (e.g. crypto) in the
+                  portal.
                 </p>
               </div>
 
               <div className="grid gap-2 lg:col-span-2">
                 <Label>Asset types (optional)</Label>
                 <div className="flex flex-wrap gap-2">
-                  {PORTAL_ASSET_TYPE_OPTIONS.map(opt => {
+                  {PORTAL_ASSET_TYPE_OPTIONS.map((opt) => {
                     const checked = portalAssetTypes.includes(opt.value);
                     return (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() =>
-                          setPortalAssetTypes(prev =>
-                            prev.includes(opt.value) ? prev.filter(a => a !== opt.value) : [...prev, opt.value]
+                          setPortalAssetTypes((prev) =>
+                            prev.includes(opt.value)
+                              ? prev.filter((a) => a !== opt.value)
+                              : [...prev, opt.value],
                           )
                         }
                         className={`text-sm border rounded-md px-3 py-2 transition-colors ${
-                          checked ? 'bg-accent border-primary' : 'hover:bg-accent'
+                          checked
+                            ? "bg-accent border-primary"
+                            : "hover:bg-accent"
                         }`}
                         aria-pressed={checked}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span>{opt.label}</span>
-                          {checked ? <Badge>On</Badge> : <Badge variant="outline">Off</Badge>}
+                          {checked ? (
+                            <Badge>On</Badge>
+                          ) : (
+                            <Badge variant="outline">Off</Badge>
+                          )}
                         </div>
                       </button>
                     );
                   })}
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  Filter providers by capability (AND logic). Leave empty for no filter.
+                  Filter providers by capability (AND logic). Leave empty for no
+                  filter.
                 </p>
               </div>
 
               <div className="grid gap-2 lg:col-span-2">
                 <Label>Stages (optional)</Label>
                 <div className="flex flex-wrap gap-2">
-                  {PORTAL_STAGE_OPTIONS.map(opt => {
+                  {PORTAL_STAGE_OPTIONS.map((opt) => {
                     const checked = portalStages.includes(opt.value);
                     return (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() =>
-                          setPortalStages(prev =>
+                          setPortalStages((prev) =>
                             prev.includes(opt.value)
-                              ? prev.filter(s => s !== opt.value)
-                              : [...prev, opt.value]
+                              ? prev.filter((s) => s !== opt.value)
+                              : [...prev, opt.value],
                           )
                         }
                         className={`text-sm border rounded-md px-3 py-2 transition-colors ${
-                          checked ? 'bg-accent border-primary' : 'hover:bg-accent'
+                          checked
+                            ? "bg-accent border-primary"
+                            : "hover:bg-accent"
                         }`}
                         aria-pressed={checked}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span>{opt.label}</span>
-                          {checked ? <Badge>On</Badge> : <Badge variant="outline">Off</Badge>}
+                          {checked ? (
+                            <Badge>On</Badge>
+                          ) : (
+                            <Badge variant="outline">Off</Badge>
+                          )}
                         </div>
                       </button>
                     );
                   })}
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  Filter providers by stage: production (no alpha/beta flags), beta, or alpha. Leave
-                  empty for no stage filter.
+                  Filter providers by stage: production (no alpha/beta flags),
+                  beta, or alpha. Leave empty for no stage filter.
                 </p>
               </div>
 
@@ -537,33 +588,44 @@ export default function PortalPageComponent(): JSX.Element {
                 <div className="text-sm font-medium">Current user</div>
                 <div className="flex items-center gap-2">
                   <div className="text-sm font-mono border rounded-md px-3 py-2 flex-1">
-                    {currentUserId || 'Not authenticated'}
+                    {currentUserId || "Not authenticated"}
                   </div>
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => void logout()}
-                    disabled={!storedUserId || storedUserId === 'None' || storedUserId === null || storedUserId === undefined || isLoading}
+                    disabled={
+                      !storedUserId ||
+                      storedUserId === "None" ||
+                      storedUserId === null ||
+                      storedUserId === undefined ||
+                      isLoading
+                    }
                     aria-label="Logout"
                     className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50"
                   >
-                    <Trash2 className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <Trash2
+                      className={`size-4 ${isLoading ? "animate-spin" : ""}`}
+                    />
                   </Button>
                 </div>
               </div>
             </div>
 
             <div className="grid gap-2">
-              <div className="text-sm font-medium">Available brokers (filtered in the portal)</div>
+              <div className="text-sm font-medium">
+                Available brokers (filtered in the portal)
+              </div>
               {brokersLoading ? (
                 <div className="text-xs text-muted-foreground flex items-center gap-2">
-                  <RefreshCw className="size-3 animate-spin" /> Loading brokers...
+                  <RefreshCw className="size-3 animate-spin" /> Loading
+                  brokers...
                 </div>
               ) : brokersError ? (
                 <div className="text-xs text-red-600">{brokersError}</div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {(availableBrokers || []).map(broker => {
+                  {(availableBrokers || []).map((broker) => {
                     const key = broker.name;
                     const checked = selectedBrokers.includes(key);
                     return (
@@ -571,18 +633,28 @@ export default function PortalPageComponent(): JSX.Element {
                         key={key}
                         type="button"
                         onClick={() =>
-                          setSelectedBrokers(prev =>
-                            prev.includes(key) ? prev.filter(b => b !== key) : [...prev, key]
+                          setSelectedBrokers((prev) =>
+                            prev.includes(key)
+                              ? prev.filter((b) => b !== key)
+                              : [...prev, key],
                           )
                         }
                         className={`text-sm border rounded-md px-3 py-2 text-left transition-colors ${
-                          checked ? 'bg-accent border-primary' : 'hover:bg-accent'
+                          checked
+                            ? "bg-accent border-primary"
+                            : "hover:bg-accent"
                         }`}
                         aria-pressed={checked}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="truncate">{broker.display_name || broker.name}</span>
-                          {checked ? <Badge>On</Badge> : <Badge variant="outline">Off</Badge>}
+                          <span className="truncate">
+                            {broker.display_name || broker.name}
+                          </span>
+                          {checked ? (
+                            <Badge>On</Badge>
+                          ) : (
+                            <Badge variant="outline">Off</Badge>
+                          )}
                         </div>
                       </button>
                     );
@@ -591,8 +663,12 @@ export default function PortalPageComponent(): JSX.Element {
               )}
             </div>
 
-            {portalMessage ? <div className="text-sm text-green-600">{portalMessage}</div> : null}
-            {portalError ? <div className="text-sm text-red-600">Error: {portalError}</div> : null}
+            {portalMessage ? (
+              <div className="text-sm text-green-600">{portalMessage}</div>
+            ) : null}
+            {portalError ? (
+              <div className="text-sm text-red-600">Error: {portalError}</div>
+            ) : null}
           </CardContent>
         ) : null}
       </Card>
@@ -601,12 +677,12 @@ export default function PortalPageComponent(): JSX.Element {
         <CardHeader>
           <button
             type="button"
-            onClick={() => setEventsOpen(v => !v)}
+            onClick={() => setEventsOpen((v) => !v)}
             className="flex w-full items-center justify-between"
           >
             <CardTitle>Portal events</CardTitle>
             <ChevronDown
-              className={`size-4 transition-transform ${eventsOpen ? 'rotate-180' : ''}`}
+              className={`size-4 transition-transform ${eventsOpen ? "rotate-180" : ""}`}
             />
           </button>
         </CardHeader>
@@ -625,7 +701,10 @@ export default function PortalPageComponent(): JSX.Element {
             <ScrollArea className="h-64">
               <div className="p-2 grid gap-2">
                 {[...portalEvents].reverse().map((event, idx) => (
-                  <div key={idx} className="border rounded-md bg-background p-3">
+                  <div
+                    key={idx}
+                    className="border rounded-md bg-background p-3"
+                  >
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span className="font-mono">{event.type}</span>
                       <span className="font-mono">{event.timestamp}</span>

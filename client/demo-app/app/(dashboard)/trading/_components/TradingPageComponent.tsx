@@ -1,33 +1,45 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useFinatic } from '@/app/providers/FinaticProvider';
-import { useEnvironmentConfig } from '@/app/providers/EnvironmentConfigProvider';
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useFinatic } from "@/app/providers/FinaticProvider";
+import { useEnvironmentConfig } from "@/app/providers/EnvironmentConfigProvider";
+import { getFinaticV1Client } from "@/lib/v1-client";
 
 type SupportedAssetType =
-  | 'equity'
-  | 'equity_option'
-  | 'crypto'
-  | 'forex'
-  | 'future'
-  | 'future_option';
+  | "equity"
+  | "equity_option"
+  | "crypto"
+  | "forex"
+  | "future"
+  | "future_option";
 
-type SupportedOrderType = 'market' | 'limit' | 'stop' | 'stop_limit' | 'trailing_stop';
+type SupportedOrderType =
+  | "market"
+  | "limit"
+  | "stop"
+  | "stop_limit"
+  | "trailing_stop";
 
 type OrderPresetConfig = {
   id: string;
@@ -67,13 +79,13 @@ const getNearestFriday = (): string => {
   fridayDate.setDate(today.getDate() + daysUntilFriday);
 
   const year = fridayDate.getFullYear();
-  const month = String(fridayDate.getMonth() + 1).padStart(2, '0');
-  const day = String(fridayDate.getDate()).padStart(2, '0');
+  const month = String(fridayDate.getMonth() + 1).padStart(2, "0");
+  const day = String(fridayDate.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
 const createOrderIdempotencyKey = () => {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
   return `demo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -82,663 +94,679 @@ const createOrderIdempotencyKey = () => {
 const BROKER_ORDER_PRESETS: Record<string, OrderPresetConfig[]> = {
   robinhood: [
     {
-      id: 'robinhood-equity-market-buy-regular-hours',
-      label: 'Equity - Market Buy (Regular Hours)',
-      description: 'Market equity buy order - matches Robinhood example (regular market hours).',
-      assetType: 'equity',
-      orderType: 'market',
+      id: "robinhood-equity-market-buy-regular-hours",
+      label: "Equity - Market Buy (Regular Hours)",
+      description:
+        "Market equity buy order - matches Robinhood example (regular market hours).",
+      assetType: "equity",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "market",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 10,
         extendedHours: false,
-        marketHours: 'regular_hours',
+        marketHours: "regular_hours",
       },
     },
     {
-      id: 'robinhood-equity-limit-sell-extended-hours',
-      label: 'Equity - Limit Sell (Extended Hours)',
-      description: 'Limit equity sell order - matches Robinhood example (extended hours).',
-      assetType: 'equity',
-      orderType: 'limit',
+      id: "robinhood-equity-limit-sell-extended-hours",
+      label: "Equity - Limit Sell (Extended Hours)",
+      description:
+        "Limit equity sell order - matches Robinhood example (extended hours).",
+      assetType: "equity",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'GOOGL',
+        orderType: "limit",
+        assetType: "equity",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "GOOGL",
         orderQty: 5,
         price: 1500.0,
         extendedHours: true,
-        marketHours: 'extended_hours',
+        marketHours: "extended_hours",
       },
     },
     {
-      id: 'robinhood-equity-stop-buy-gtc',
-      label: 'Equity - Stop Buy (GTC)',
-      description: 'Stop equity buy order - matches Robinhood example (GTC).',
-      assetType: 'equity',
-      orderType: 'stop',
+      id: "robinhood-equity-stop-buy-gtc",
+      label: "Equity - Stop Buy (GTC)",
+      description: "Stop equity buy order - matches Robinhood example (GTC).",
+      assetType: "equity",
+      orderType: "stop",
       defaultOrder: {
-        orderType: 'stop',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'MSFT',
+        orderType: "stop",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "MSFT",
         orderQty: 20,
         stopPrice: 310.0,
         extendedHours: false,
-        marketHours: 'regular_hours',
+        marketHours: "regular_hours",
       },
     },
     {
-      id: 'robinhood-equity-stop-limit-sell-gtd',
-      label: 'Equity - Stop Limit Sell (GTD)',
-      description: 'Stop-limit equity sell order - matches Robinhood example with expire time.',
-      assetType: 'equity',
-      orderType: 'stop_limit',
+      id: "robinhood-equity-stop-limit-sell-gtd",
+      label: "Equity - Stop Limit Sell (GTD)",
+      description:
+        "Stop-limit equity sell order - matches Robinhood example with expire time.",
+      assetType: "equity",
+      orderType: "stop_limit",
       defaultOrder: {
-        orderType: 'stop_limit',
-        assetType: 'equity',
-        action: 'sell',
-        timeInForce: 'gtd',
-        expireTime: '2025-01-15T14:30:00Z',
-        symbol: 'TSLA',
+        orderType: "stop_limit",
+        assetType: "equity",
+        action: "sell",
+        timeInForce: "gtd",
+        expireTime: "2025-01-15T14:30:00Z",
+        symbol: "TSLA",
         orderQty: 3,
         stopPrice: 200.0,
         limitPrice: 195.0,
         extendedHours: false,
-        marketHours: 'regular_hours',
+        marketHours: "regular_hours",
       },
     },
     {
-      id: 'robinhood-equity-trailing-stop-buy-gtc',
-      label: 'Equity - Trailing Stop Buy (GTC)',
-      description: 'Trailing-stop equity buy order - matches Robinhood example (GTC).',
-      assetType: 'equity',
-      orderType: 'trailing_stop',
+      id: "robinhood-equity-trailing-stop-buy-gtc",
+      label: "Equity - Trailing Stop Buy (GTC)",
+      description:
+        "Trailing-stop equity buy order - matches Robinhood example (GTC).",
+      assetType: "equity",
+      orderType: "trailing_stop",
       defaultOrder: {
-        orderType: 'trailing_stop',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'NFLX',
+        orderType: "trailing_stop",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "NFLX",
         orderQty: 8,
         stopPrice: 450.0,
         extendedHours: false,
-        marketHours: 'regular_hours',
+        marketHours: "regular_hours",
       },
     },
     {
-      id: 'robinhood-equity-option-limit-buy-single-leg',
-      label: 'Equity Option - Limit Buy (Single Leg)',
-      description: 'Single-leg equity option limit buy - matches Robinhood example.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+      id: "robinhood-equity-option-limit-buy-single-leg",
+      label: "Equity Option - Limit Buy (Single Leg)",
+      description:
+        "Single-leg equity option limit buy - matches Robinhood example.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 1,
         price: 1.25,
-        positionEffect: 'open',
-        creditOrDebit: 'debit',
-        expirationDate: '2025-06-21',
+        positionEffect: "open",
+        creditOrDebit: "debit",
+        expirationDate: "2025-06-21",
         strikePrice: 150.0,
-        optionType: 'call',
+        optionType: "call",
       },
     },
     {
-      id: 'robinhood-equity-option-limit-sell-single-leg',
-      label: 'Equity Option - Limit Sell (Single Leg)',
-      description: 'Single-leg equity option limit sell - matches Robinhood example.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+      id: "robinhood-equity-option-limit-sell-single-leg",
+      label: "Equity Option - Limit Sell (Single Leg)",
+      description:
+        "Single-leg equity option limit sell - matches Robinhood example.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "AAPL",
         orderQty: 1,
         price: 2.1,
-        positionEffect: 'open',
-        creditOrDebit: 'credit',
-        expirationDate: '2025-06-21',
+        positionEffect: "open",
+        creditOrDebit: "credit",
+        expirationDate: "2025-06-21",
         strikePrice: 140.0,
-        optionType: 'put',
+        optionType: "put",
       },
     },
     {
-      id: 'robinhood-equity-option-stop-limit-buy-single-leg',
-      label: 'Equity Option - Stop Limit Buy (Single Leg)',
-      description: 'Single-leg equity option stop-limit buy - matches Robinhood example.',
-      assetType: 'equity_option',
-      orderType: 'stop_limit',
+      id: "robinhood-equity-option-stop-limit-buy-single-leg",
+      label: "Equity Option - Stop Limit Buy (Single Leg)",
+      description:
+        "Single-leg equity option stop-limit buy - matches Robinhood example.",
+      assetType: "equity_option",
+      orderType: "stop_limit",
       defaultOrder: {
-        orderType: 'stop_limit',
-        assetType: 'equity_option',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'MSFT',
+        orderType: "stop_limit",
+        assetType: "equity_option",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "MSFT",
         orderQty: 2,
         limitPrice: 3.5,
         stopPrice: 3.0,
-        positionEffect: 'open',
-        creditOrDebit: 'debit',
-        expirationDate: '2025-07-19',
+        positionEffect: "open",
+        creditOrDebit: "debit",
+        expirationDate: "2025-07-19",
         strikePrice: 300.0,
-        optionType: 'call',
+        optionType: "call",
       },
     },
     {
-      id: 'robinhood-equity-option-stop-limit-sell-single-leg',
-      label: 'Equity Option - Stop Limit Sell (Single Leg)',
-      description: 'Single-leg equity option stop-limit sell - matches Robinhood example.',
-      assetType: 'equity_option',
-      orderType: 'stop_limit',
+      id: "robinhood-equity-option-stop-limit-sell-single-leg",
+      label: "Equity Option - Stop Limit Sell (Single Leg)",
+      description:
+        "Single-leg equity option stop-limit sell - matches Robinhood example.",
+      assetType: "equity_option",
+      orderType: "stop_limit",
       defaultOrder: {
-        orderType: 'stop_limit',
-        assetType: 'equity_option',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'MSFT',
+        orderType: "stop_limit",
+        assetType: "equity_option",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "MSFT",
         orderQty: 2,
         limitPrice: 4.0,
         stopPrice: 3.5,
-        positionEffect: 'close',
-        creditOrDebit: 'credit',
-        expirationDate: '2025-07-19',
+        positionEffect: "close",
+        creditOrDebit: "credit",
+        expirationDate: "2025-07-19",
         strikePrice: 300.0,
-        optionType: 'call',
+        optionType: "call",
       },
     },
     {
-      id: 'robinhood-equity-option-limit-buy-debit-spread',
-      label: 'Equity Option - Limit Buy (Debit Spread)',
-      description: 'Multi-leg equity option limit buy debit spread - matches Robinhood example.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+      id: "robinhood-equity-option-limit-buy-debit-spread",
+      label: "Equity Option - Limit Buy (Debit Spread)",
+      description:
+        "Multi-leg equity option limit buy debit spread - matches Robinhood example.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'SPY',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "SPY",
         orderQty: 1,
         price: 1.5,
-        direction: 'debit',
-        creditOrDebit: 'debit',
+        direction: "debit",
+        creditOrDebit: "debit",
         spread: [
           {
-            expirationDate: '2025-06-21',
+            expirationDate: "2025-06-21",
             strikePrice: 430.0,
-            optionType: 'call',
-            positionEffect: 'open',
-            action: 'buy',
+            optionType: "call",
+            positionEffect: "open",
+            action: "buy",
             ratioQuantity: 1,
           },
           {
-            expirationDate: '2025-06-21',
+            expirationDate: "2025-06-21",
             strikePrice: 435.0,
-            optionType: 'call',
-            positionEffect: 'open',
-            action: 'sell',
+            optionType: "call",
+            positionEffect: "open",
+            action: "sell",
             ratioQuantity: 1,
           },
         ],
       },
     },
     {
-      id: 'robinhood-equity-option-limit-sell-credit-spread',
-      label: 'Equity Option - Limit Sell (Credit Spread)',
-      description: 'Multi-leg equity option limit sell credit spread - matches Robinhood example.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+      id: "robinhood-equity-option-limit-sell-credit-spread",
+      label: "Equity Option - Limit Sell (Credit Spread)",
+      description:
+        "Multi-leg equity option limit sell credit spread - matches Robinhood example.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'SPY',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "SPY",
         orderQty: 1,
         price: 0.8,
-        direction: 'credit',
-        creditOrDebit: 'credit',
+        direction: "credit",
+        creditOrDebit: "credit",
         spread: [
           {
-            expirationDate: '2025-06-21',
+            expirationDate: "2025-06-21",
             strikePrice: 430.0,
-            optionType: 'put',
-            positionEffect: 'open',
-            action: 'sell',
+            optionType: "put",
+            positionEffect: "open",
+            action: "sell",
             ratioQuantity: 1,
           },
           {
-            expirationDate: '2025-06-21',
+            expirationDate: "2025-06-21",
             strikePrice: 425.0,
-            optionType: 'put',
-            positionEffect: 'open',
-            action: 'buy',
+            optionType: "put",
+            positionEffect: "open",
+            action: "buy",
             ratioQuantity: 1,
           },
         ],
       },
     },
     {
-      id: 'robinhood-crypto-market-buy-quantity',
-      label: 'Crypto - Market Buy (Amount In Quantity)',
-      description: 'Crypto market buy order using amountIn="quantity" - matches Robinhood example.',
-      assetType: 'crypto',
-      orderType: 'market',
+      id: "robinhood-crypto-market-buy-quantity",
+      label: "Crypto - Market Buy (Amount In Quantity)",
+      description:
+        'Crypto market buy order using amountIn="quantity" - matches Robinhood example.',
+      assetType: "crypto",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'crypto',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'BTC',
+        orderType: "market",
+        assetType: "crypto",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "BTC",
         orderQty: 0.001,
-        amountIn: 'quantity',
+        amountIn: "quantity",
       },
     },
     {
-      id: 'robinhood-crypto-market-buy-price',
-      label: 'Crypto - Market Buy (Amount In Price)',
-      description: 'Crypto market buy order using amountIn="price" - matches Robinhood example.',
-      assetType: 'crypto',
-      orderType: 'market',
+      id: "robinhood-crypto-market-buy-price",
+      label: "Crypto - Market Buy (Amount In Price)",
+      description:
+        'Crypto market buy order using amountIn="price" - matches Robinhood example.',
+      assetType: "crypto",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'crypto',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'ETH',
+        orderType: "market",
+        assetType: "crypto",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "ETH",
         orderQty: 100.0,
-        amountIn: 'price',
+        amountIn: "price",
       },
     },
     {
-      id: 'robinhood-crypto-limit-buy-quantity',
-      label: 'Crypto - Limit Buy (Amount In Quantity)',
-      description: 'Crypto limit buy order using amountIn="quantity" - matches Robinhood example.',
-      assetType: 'crypto',
-      orderType: 'limit',
+      id: "robinhood-crypto-limit-buy-quantity",
+      label: "Crypto - Limit Buy (Amount In Quantity)",
+      description:
+        'Crypto limit buy order using amountIn="quantity" - matches Robinhood example.',
+      assetType: "crypto",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'crypto',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'BTC',
+        orderType: "limit",
+        assetType: "crypto",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "BTC",
         orderQty: 0.002,
         price: 30000.0,
-        amountIn: 'quantity',
+        amountIn: "quantity",
       },
     },
     {
-      id: 'robinhood-crypto-limit-sell-price',
-      label: 'Crypto - Limit Sell (Amount In Price)',
-      description: 'Crypto limit sell order using amountIn="price" - matches Robinhood example.',
-      assetType: 'crypto',
-      orderType: 'limit',
+      id: "robinhood-crypto-limit-sell-price",
+      label: "Crypto - Limit Sell (Amount In Price)",
+      description:
+        'Crypto limit sell order using amountIn="price" - matches Robinhood example.',
+      assetType: "crypto",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'crypto',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'ETH',
+        orderType: "limit",
+        assetType: "crypto",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "ETH",
         orderQty: 250.0,
         price: 3200.0,
-        amountIn: 'price',
+        amountIn: "price",
       },
     },
   ],
   tasty_trade: [
     {
-      id: 'tasty_trade-equity-market-buy',
-      label: 'Equity - Market Buy',
-      description: 'Market equity buy order for TastyTrade.',
-      assetType: 'equity',
-      orderType: 'market',
+      id: "tasty_trade-equity-market-buy",
+      label: "Equity - Market Buy",
+      description: "Market equity buy order for TastyTrade.",
+      assetType: "equity",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "market",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 10,
-        'automated-source': true,
+        "automated-source": true,
       },
     },
     {
-      id: 'tasty_trade-equity-limit-sell',
-      label: 'Equity - Limit Sell',
-      description: 'Limit equity sell order for TastyTrade.',
-      assetType: 'equity',
-      orderType: 'limit',
+      id: "tasty_trade-equity-limit-sell",
+      label: "Equity - Limit Sell",
+      description: "Limit equity sell order for TastyTrade.",
+      assetType: "equity",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'GOOGL',
+        orderType: "limit",
+        assetType: "equity",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "GOOGL",
         orderQty: 5,
         price: 1500.0,
-        'automated-source': true,
+        "automated-source": true,
       },
     },
     {
-      id: 'tasty_trade-equity-stop-buy-gtc',
-      label: 'Equity - Stop Buy (GTC)',
-      description: 'Stop equity buy order for TastyTrade (GTC).',
-      assetType: 'equity',
-      orderType: 'stop',
+      id: "tasty_trade-equity-stop-buy-gtc",
+      label: "Equity - Stop Buy (GTC)",
+      description: "Stop equity buy order for TastyTrade (GTC).",
+      assetType: "equity",
+      orderType: "stop",
       defaultOrder: {
-        orderType: 'stop',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'MSFT',
+        orderType: "stop",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "MSFT",
         orderQty: 20,
         stopPrice: 310.0,
-        'automated-source': true,
+        "automated-source": true,
       },
     },
     {
-      id: 'tasty_trade-equity-stop-limit-sell-gtd',
-      label: 'Equity - Stop Limit Sell (GTD)',
-      description: 'Stop-limit equity sell order for TastyTrade with expire time.',
-      assetType: 'equity',
-      orderType: 'stop_limit',
+      id: "tasty_trade-equity-stop-limit-sell-gtd",
+      label: "Equity - Stop Limit Sell (GTD)",
+      description:
+        "Stop-limit equity sell order for TastyTrade with expire time.",
+      assetType: "equity",
+      orderType: "stop_limit",
       defaultOrder: {
-        orderType: 'stop_limit',
-        assetType: 'equity',
-        action: 'sell',
-        timeInForce: 'gtd',
-        expireTime: '2025-01-15T14:30:00Z',
-        symbol: 'TSLA',
+        orderType: "stop_limit",
+        assetType: "equity",
+        action: "sell",
+        timeInForce: "gtd",
+        expireTime: "2025-01-15T14:30:00Z",
+        symbol: "TSLA",
         orderQty: 3,
         stopPrice: 200.0,
         limitPrice: 195.0,
-        'automated-source': true,
+        "automated-source": true,
       },
     },
     {
-      id: 'tasty_trade-equity-option-limit-buy-single-leg',
-      label: 'Equity Option - Limit Buy (Single Leg)',
-      description: 'Single-leg equity option limit buy for TastyTrade.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+      id: "tasty_trade-equity-option-limit-buy-single-leg",
+      label: "Equity Option - Limit Buy (Single Leg)",
+      description: "Single-leg equity option limit buy for TastyTrade.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 1,
         price: 1.25,
-        expirationDate: '2025-06-21',
+        expirationDate: "2025-06-21",
         strikePrice: 150.0,
-        optionType: 'call',
-        'automated-source': true,
-        'price-effect': 'Debit',
+        optionType: "call",
+        "automated-source": true,
+        "price-effect": "Debit",
       },
     },
     {
-      id: 'tasty_trade-equity-option-limit-sell-single-leg',
-      label: 'Equity Option - Limit Sell (Single Leg)',
-      description: 'Single-leg equity option limit sell for TastyTrade.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+      id: "tasty_trade-equity-option-limit-sell-single-leg",
+      label: "Equity Option - Limit Sell (Single Leg)",
+      description: "Single-leg equity option limit sell for TastyTrade.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "AAPL",
         orderQty: 1,
         price: 2.1,
-        expirationDate: '2025-06-21',
+        expirationDate: "2025-06-21",
         strikePrice: 140.0,
-        optionType: 'put',
-        'automated-source': true,
-        'price-effect': 'Credit',
+        optionType: "put",
+        "automated-source": true,
+        "price-effect": "Credit",
       },
     },
     {
-      id: 'tasty_trade-equity-option-limit-buy-debit-spread',
-      label: 'Equity Option - Limit Buy (Debit Spread)',
+      id: "tasty_trade-equity-option-limit-buy-debit-spread",
+      label: "Equity Option - Limit Buy (Debit Spread)",
       description:
-        'Multi-leg equity option limit buy debit spread for TastyTrade using legs array.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+        "Multi-leg equity option limit buy debit spread for TastyTrade using legs array.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'SPY',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "SPY",
         orderQty: 1,
         price: 1.5,
-        'automated-source': true,
-        'price-effect': 'Debit',
+        "automated-source": true,
+        "price-effect": "Debit",
         legs: [
           {
-            'instrument-type': 'Equity Option',
-            symbol: 'SPY',
+            "instrument-type": "Equity Option",
+            symbol: "SPY",
             quantity: 1,
-            action: 'Buy to Open',
-            expirationDate: '2025-06-21',
+            action: "Buy to Open",
+            expirationDate: "2025-06-21",
             strikePrice: 430.0,
-            optionType: 'call',
+            optionType: "call",
           },
           {
-            'instrument-type': 'Equity Option',
-            symbol: 'SPY',
+            "instrument-type": "Equity Option",
+            symbol: "SPY",
             quantity: 1,
-            action: 'Sell to Open',
-            expirationDate: '2025-06-21',
+            action: "Sell to Open",
+            expirationDate: "2025-06-21",
             strikePrice: 435.0,
-            optionType: 'call',
+            optionType: "call",
           },
         ],
       },
     },
     {
-      id: 'tasty_trade-equity-option-limit-sell-credit-spread',
-      label: 'Equity Option - Limit Sell (Credit Spread)',
+      id: "tasty_trade-equity-option-limit-sell-credit-spread",
+      label: "Equity Option - Limit Sell (Credit Spread)",
       description:
-        'Multi-leg equity option limit sell credit spread for TastyTrade using legs array.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+        "Multi-leg equity option limit sell credit spread for TastyTrade using legs array.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'SPY',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "SPY",
         orderQty: 1,
         price: 0.8,
-        'automated-source': true,
-        'price-effect': 'Credit',
+        "automated-source": true,
+        "price-effect": "Credit",
         legs: [
           {
-            'instrument-type': 'Equity Option',
-            symbol: 'SPY',
+            "instrument-type": "Equity Option",
+            symbol: "SPY",
             quantity: 1,
-            action: 'Sell to Open',
-            expirationDate: '2025-06-21',
+            action: "Sell to Open",
+            expirationDate: "2025-06-21",
             strikePrice: 430.0,
-            optionType: 'put',
+            optionType: "put",
           },
           {
-            'instrument-type': 'Equity Option',
-            symbol: 'SPY',
+            "instrument-type": "Equity Option",
+            symbol: "SPY",
             quantity: 1,
-            action: 'Buy to Open',
-            expirationDate: '2025-06-21',
+            action: "Buy to Open",
+            expirationDate: "2025-06-21",
             strikePrice: 425.0,
-            optionType: 'put',
+            optionType: "put",
           },
         ],
       },
     },
     {
-      id: 'tasty_trade-future-market-buy',
-      label: 'Future - Market Buy',
-      description: 'Market future buy order for TastyTrade.',
-      assetType: 'future',
-      orderType: 'market',
+      id: "tasty_trade-future-market-buy",
+      label: "Future - Market Buy",
+      description: "Market future buy order for TastyTrade.",
+      assetType: "future",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'future',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'ES',
+        orderType: "market",
+        assetType: "future",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "ES",
         orderQty: 1,
-        'automated-source': true,
+        "automated-source": true,
       },
     },
     {
-      id: 'tasty_trade-future-limit-sell',
-      label: 'Future - Limit Sell',
-      description: 'Limit future sell order for TastyTrade.',
-      assetType: 'future',
-      orderType: 'limit',
+      id: "tasty_trade-future-limit-sell",
+      label: "Future - Limit Sell",
+      description: "Limit future sell order for TastyTrade.",
+      assetType: "future",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'future',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'NQ',
+        orderType: "limit",
+        assetType: "future",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "NQ",
         orderQty: 1,
         price: 15000.0,
-        'automated-source': true,
+        "automated-source": true,
       },
     },
     {
-      id: 'tasty_trade-future-option-limit-buy',
-      label: 'Future Option - Limit Buy',
-      description: 'Limit future option buy order for TastyTrade.',
-      assetType: 'future_option',
-      orderType: 'limit',
+      id: "tasty_trade-future-option-limit-buy",
+      label: "Future Option - Limit Buy",
+      description: "Limit future option buy order for TastyTrade.",
+      assetType: "future_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'future_option',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'ES',
+        orderType: "limit",
+        assetType: "future_option",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "ES",
         orderQty: 1,
         price: 50.0,
-        expirationDate: '2025-06-20',
+        expirationDate: "2025-06-20",
         strikePrice: 4000.0,
-        optionType: 'call',
-        'automated-source': true,
-        'price-effect': 'Debit',
+        optionType: "call",
+        "automated-source": true,
+        "price-effect": "Debit",
       },
     },
     {
-      id: 'tasty_trade-crypto-market-buy',
-      label: 'Crypto - Market Buy',
-      description: 'Crypto market buy order for TastyTrade.',
-      assetType: 'crypto',
-      orderType: 'market',
+      id: "tasty_trade-crypto-market-buy",
+      label: "Crypto - Market Buy",
+      description: "Crypto market buy order for TastyTrade.",
+      assetType: "crypto",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'crypto',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'BTC',
+        orderType: "market",
+        assetType: "crypto",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "BTC",
         orderQty: 0.001,
-        'automated-source': true,
+        "automated-source": true,
       },
     },
     {
-      id: 'tasty_trade-crypto-limit-sell',
-      label: 'Crypto - Limit Sell',
-      description: 'Crypto limit sell order for TastyTrade.',
-      assetType: 'crypto',
-      orderType: 'limit',
+      id: "tasty_trade-crypto-limit-sell",
+      label: "Crypto - Limit Sell",
+      description: "Crypto limit sell order for TastyTrade.",
+      assetType: "crypto",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'crypto',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'ETH',
+        orderType: "limit",
+        assetType: "crypto",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "ETH",
         orderQty: 0.1,
         price: 3200.0,
-        'automated-source': true,
+        "automated-source": true,
       },
     },
   ],
   ninja_trader: [
     {
-      id: 'ninja_trader-equity-market-buy',
-      label: 'Equity - Market Buy',
-      description: 'Market equity buy order for NinjaTrader.',
-      assetType: 'equity',
-      orderType: 'market',
+      id: "ninja_trader-equity-market-buy",
+      label: "Equity - Market Buy",
+      description: "Market equity buy order for NinjaTrader.",
+      assetType: "equity",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "market",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 10,
         isAutomated: true,
       },
     },
     {
-      id: 'ninja_trader-equity-limit-sell',
-      label: 'Equity - Limit Sell',
-      description: 'Limit equity sell order for NinjaTrader.',
-      assetType: 'equity',
-      orderType: 'limit',
+      id: "ninja_trader-equity-limit-sell",
+      label: "Equity - Limit Sell",
+      description: "Limit equity sell order for NinjaTrader.",
+      assetType: "equity",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'GOOGL',
+        orderType: "limit",
+        assetType: "equity",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "GOOGL",
         orderQty: 5,
         price: 1500.0,
         isAutomated: true,
       },
     },
     {
-      id: 'ninja_trader-equity-stop-buy-gtc',
-      label: 'Equity - Stop Buy (GTC)',
-      description: 'Stop equity buy order for NinjaTrader (GTC).',
-      assetType: 'equity',
-      orderType: 'stop',
+      id: "ninja_trader-equity-stop-buy-gtc",
+      label: "Equity - Stop Buy (GTC)",
+      description: "Stop equity buy order for NinjaTrader (GTC).",
+      assetType: "equity",
+      orderType: "stop",
       defaultOrder: {
-        orderType: 'stop',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'MSFT',
+        orderType: "stop",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "MSFT",
         orderQty: 20,
         stopPrice: 310.0,
         isAutomated: true,
       },
     },
     {
-      id: 'ninja_trader-equity-stop-limit-sell-gtd',
-      label: 'Equity - Stop Limit Sell (GTD)',
-      description: 'Stop-limit equity sell order for NinjaTrader with expire time.',
-      assetType: 'equity',
-      orderType: 'stop_limit',
+      id: "ninja_trader-equity-stop-limit-sell-gtd",
+      label: "Equity - Stop Limit Sell (GTD)",
+      description:
+        "Stop-limit equity sell order for NinjaTrader with expire time.",
+      assetType: "equity",
+      orderType: "stop_limit",
       defaultOrder: {
-        orderType: 'stop_limit',
-        assetType: 'equity',
-        action: 'sell',
-        timeInForce: 'gtd',
-        expireTime: '2025-01-15T14:30:00Z',
-        symbol: 'TSLA',
+        orderType: "stop_limit",
+        assetType: "equity",
+        action: "sell",
+        timeInForce: "gtd",
+        expireTime: "2025-01-15T14:30:00Z",
+        symbol: "TSLA",
         orderQty: 3,
         stopPrice: 200.0,
         limitPrice: 195.0,
@@ -746,126 +774,126 @@ const BROKER_ORDER_PRESETS: Record<string, OrderPresetConfig[]> = {
       },
     },
     {
-      id: 'ninja_trader-equity-option-limit-buy-single-leg',
-      label: 'Equity Option - Limit Buy (Single Leg)',
-      description: 'Single-leg equity option limit buy for NinjaTrader.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+      id: "ninja_trader-equity-option-limit-buy-single-leg",
+      label: "Equity Option - Limit Buy (Single Leg)",
+      description: "Single-leg equity option limit buy for NinjaTrader.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 1,
         price: 1.25,
-        expirationDate: '2025-06-21',
+        expirationDate: "2025-06-21",
         strikePrice: 150.0,
-        optionType: 'call',
+        optionType: "call",
         isAutomated: true,
       },
     },
     {
-      id: 'ninja_trader-equity-option-limit-sell-single-leg',
-      label: 'Equity Option - Limit Sell (Single Leg)',
-      description: 'Single-leg equity option limit sell for NinjaTrader.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+      id: "ninja_trader-equity-option-limit-sell-single-leg",
+      label: "Equity Option - Limit Sell (Single Leg)",
+      description: "Single-leg equity option limit sell for NinjaTrader.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "AAPL",
         orderQty: 1,
         price: 2.1,
-        expirationDate: '2025-06-21',
+        expirationDate: "2025-06-21",
         strikePrice: 140.0,
-        optionType: 'put',
+        optionType: "put",
         isAutomated: true,
       },
     },
     {
-      id: 'ninja_trader-future-market-buy',
-      label: 'Future - Market Buy',
-      description: 'Market future buy order for NinjaTrader.',
-      assetType: 'future',
-      orderType: 'market',
+      id: "ninja_trader-future-market-buy",
+      label: "Future - Market Buy",
+      description: "Market future buy order for NinjaTrader.",
+      assetType: "future",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'future',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'ES',
+        orderType: "market",
+        assetType: "future",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "ES",
         orderQty: 1,
         isAutomated: true,
       },
     },
     {
-      id: 'ninja_trader-future-limit-sell',
-      label: 'Future - Limit Sell',
-      description: 'Limit future sell order for NinjaTrader.',
-      assetType: 'future',
-      orderType: 'limit',
+      id: "ninja_trader-future-limit-sell",
+      label: "Future - Limit Sell",
+      description: "Limit future sell order for NinjaTrader.",
+      assetType: "future",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'future',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'NQ',
+        orderType: "limit",
+        assetType: "future",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "NQ",
         orderQty: 1,
         price: 15000.0,
         isAutomated: true,
       },
     },
     {
-      id: 'ninja_trader-future-option-limit-buy',
-      label: 'Future Option - Limit Buy',
-      description: 'Limit future option buy order for NinjaTrader.',
-      assetType: 'future_option',
-      orderType: 'limit',
+      id: "ninja_trader-future-option-limit-buy",
+      label: "Future Option - Limit Buy",
+      description: "Limit future option buy order for NinjaTrader.",
+      assetType: "future_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'future_option',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'ES',
+        orderType: "limit",
+        assetType: "future_option",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "ES",
         orderQty: 1,
         price: 50.0,
-        expirationDate: '2025-06-20',
+        expirationDate: "2025-06-20",
         strikePrice: 4000.0,
-        optionType: 'call',
+        optionType: "call",
         isAutomated: true,
       },
     },
     {
-      id: 'ninja_trader-crypto-market-buy',
-      label: 'Crypto - Market Buy',
-      description: 'Crypto market buy order for NinjaTrader.',
-      assetType: 'crypto',
-      orderType: 'market',
+      id: "ninja_trader-crypto-market-buy",
+      label: "Crypto - Market Buy",
+      description: "Crypto market buy order for NinjaTrader.",
+      assetType: "crypto",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'crypto',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'BTC',
+        orderType: "market",
+        assetType: "crypto",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "BTC",
         orderQty: 0.001,
         isAutomated: true,
       },
     },
     {
-      id: 'ninja_trader-crypto-limit-sell',
-      label: 'Crypto - Limit Sell',
-      description: 'Crypto limit sell order for NinjaTrader.',
-      assetType: 'crypto',
-      orderType: 'limit',
+      id: "ninja_trader-crypto-limit-sell",
+      label: "Crypto - Limit Sell",
+      description: "Crypto limit sell order for NinjaTrader.",
+      assetType: "crypto",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'crypto',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'ETH',
+        orderType: "limit",
+        assetType: "crypto",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "ETH",
         orderQty: 0.1,
         price: 3200.0,
         isAutomated: true,
@@ -875,206 +903,206 @@ const BROKER_ORDER_PRESETS: Record<string, OrderPresetConfig[]> = {
   webull: [
     // Equity presets — UAT: use CASH account 1010052097
     {
-      id: 'webull-equity-market-buy-day',
-      label: 'Equity - Market Buy (Day, Regular)',
+      id: "webull-equity-market-buy-day",
+      label: "Equity - Market Buy (Day, Regular)",
       description:
-        'Market equity buy. Regular hours only (9:30–16:00 ET). Use Limit+GTC for extended hours. UAT: use CASH account 1010052097.',
-      assetType: 'equity',
-      orderType: 'market',
+        "Market equity buy. Regular hours only (9:30–16:00 ET). Use Limit+GTC for extended hours. UAT: use CASH account 1010052097.",
+      assetType: "equity",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "market",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 1,
         extendedHours: false,
-        marketHours: 'regular_hours',
+        marketHours: "regular_hours",
       },
     },
     {
-      id: 'webull-equity-limit-buy-gtc',
-      label: 'Equity - Limit Buy (GTC)',
-      description: 'Limit equity buy GTC. UAT: use CASH account 1010052097.',
-      assetType: 'equity',
-      orderType: 'limit',
+      id: "webull-equity-limit-buy-gtc",
+      label: "Equity - Limit Buy (GTC)",
+      description: "Limit equity buy GTC. UAT: use CASH account 1010052097.",
+      assetType: "equity",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "AAPL",
         orderQty: 1,
         price: 150.0,
         extendedHours: false,
-        marketHours: 'regular_hours',
+        marketHours: "regular_hours",
       },
     },
     {
-      id: 'webull-equity-limit-sell-extended',
-      label: 'Equity - Limit Sell (Extended Hours)',
+      id: "webull-equity-limit-sell-extended",
+      label: "Equity - Limit Sell (Extended Hours)",
       description:
-        'Limit equity sell, extended hours. Uses GTC + extendedHours so it works outside regular hours. UAT: use CASH account 1010052097.',
-      assetType: 'equity',
-      orderType: 'limit',
+        "Limit equity sell, extended hours. Uses GTC + extendedHours so it works outside regular hours. UAT: use CASH account 1010052097.",
+      assetType: "equity",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "AAPL",
         orderQty: 1,
         price: 250.0,
         extendedHours: true,
-        marketHours: 'extended_hours',
+        marketHours: "extended_hours",
       },
     },
     {
-      id: 'webull-equity-stop-buy-gtc',
-      label: 'Equity - Stop Buy (GTC)',
+      id: "webull-equity-stop-buy-gtc",
+      label: "Equity - Stop Buy (GTC)",
       description:
-        'Stop equity buy. Use a stop price above current market when testing during post-market. UAT: use CASH account 1010052097.',
-      assetType: 'equity',
-      orderType: 'stop',
+        "Stop equity buy. Use a stop price above current market when testing during post-market. UAT: use CASH account 1010052097.",
+      assetType: "equity",
+      orderType: "stop",
       defaultOrder: {
-        orderType: 'stop',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'AAPL',
+        orderType: "stop",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "AAPL",
         orderQty: 1,
         stopPrice: 300.0,
         extendedHours: false,
-        marketHours: 'regular_hours',
+        marketHours: "regular_hours",
       },
     },
     {
-      id: 'webull-equity-stop-limit-sell-day',
-      label: 'Equity - Stop Limit Sell (Day)',
+      id: "webull-equity-stop-limit-sell-day",
+      label: "Equity - Stop Limit Sell (Day)",
       description:
-        'Stop-limit equity sell. Use GTC for extended hours; Day only works during regular hours. UAT: use CASH account 1010052097.',
-      assetType: 'equity',
-      orderType: 'stop_limit',
+        "Stop-limit equity sell. Use GTC for extended hours; Day only works during regular hours. UAT: use CASH account 1010052097.",
+      assetType: "equity",
+      orderType: "stop_limit",
       defaultOrder: {
-        orderType: 'stop_limit',
-        assetType: 'equity',
-        action: 'sell',
-        timeInForce: 'gtc',
-        symbol: 'AAPL',
+        orderType: "stop_limit",
+        assetType: "equity",
+        action: "sell",
+        timeInForce: "gtc",
+        symbol: "AAPL",
         orderQty: 1,
         stopPrice: 240.0,
         limitPrice: 235.0,
         extendedHours: false,
-        marketHours: 'regular_hours',
+        marketHours: "regular_hours",
       },
     },
     {
-      id: 'webull-equity-trailing-stop-buy-gtc',
-      label: 'Equity - Trailing Stop Buy (GTC)',
+      id: "webull-equity-trailing-stop-buy-gtc",
+      label: "Equity - Trailing Stop Buy (GTC)",
       description:
-        'Trailing-stop equity buy (5% trail). Use stop price above market when testing during post-market. UAT: use CASH account 1010052097.',
-      assetType: 'equity',
-      orderType: 'trailing_stop',
+        "Trailing-stop equity buy (5% trail). Use stop price above market when testing during post-market. UAT: use CASH account 1010052097.",
+      assetType: "equity",
+      orderType: "trailing_stop",
       defaultOrder: {
-        orderType: 'trailing_stop',
-        assetType: 'equity',
-        action: 'buy',
-        timeInForce: 'gtc',
-        symbol: 'AAPL',
+        orderType: "trailing_stop",
+        assetType: "equity",
+        action: "buy",
+        timeInForce: "gtc",
+        symbol: "AAPL",
         orderQty: 1,
         stopPrice: 250.0,
         trailPercent: 5,
         extendedHours: false,
-        marketHours: 'regular_hours',
+        marketHours: "regular_hours",
       },
     },
     // Option presets — single-leg; Webull supports MARKET, LIMIT, STOP_LOSS (no TRAILING_STOP_LOSS)
     // Prices based on AAPL ~275.50; strike 220 call ≈ 55–60 premium. Stop buy: stop must be > market.
     {
-      id: 'webull-equity-option-market-buy-call',
-      label: 'Option - Market Buy Call (Single Leg)',
+      id: "webull-equity-option-market-buy-call",
+      label: "Option - Market Buy Call (Single Leg)",
       description:
-        'Single-leg option market buy call. Place during 9:30–4:00 ET. UAT: use CASH account 1010052097.',
-      assetType: 'equity_option',
-      orderType: 'market',
+        "Single-leg option market buy call. Place during 9:30–4:00 ET. UAT: use CASH account 1010052097.",
+      assetType: "equity_option",
+      orderType: "market",
       defaultOrder: {
-        orderType: 'market',
-        assetType: 'equity_option',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "market",
+        assetType: "equity_option",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 1,
-        positionEffect: 'open',
-        creditOrDebit: 'debit',
+        positionEffect: "open",
+        creditOrDebit: "debit",
         expirationDate: getNearestFriday(),
         strikePrice: 220,
-        optionType: 'call',
+        optionType: "call",
       },
     },
     {
-      id: 'webull-equity-option-limit-buy-call',
-      label: 'Option - Limit Buy Call (Single Leg)',
+      id: "webull-equity-option-limit-buy-call",
+      label: "Option - Limit Buy Call (Single Leg)",
       description:
-        'Single-leg option limit buy call. Limit ~55 for strike 220 when AAPL ~275. Place during market hours.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+        "Single-leg option limit buy call. Limit ~55 for strike 220 when AAPL ~275. Place during market hours.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 1,
         price: 55,
-        positionEffect: 'open',
-        creditOrDebit: 'debit',
+        positionEffect: "open",
+        creditOrDebit: "debit",
         expirationDate: getNearestFriday(),
         strikePrice: 220,
-        optionType: 'call',
+        optionType: "call",
       },
     },
     {
-      id: 'webull-equity-option-limit-sell-call',
-      label: 'Option - Limit Sell Call (Single Leg)',
+      id: "webull-equity-option-limit-sell-call",
+      label: "Option - Limit Sell Call (Single Leg)",
       description:
-        'Single-leg option limit sell call. Limit ~60 for strike 220 when AAPL ~275. Place during market hours.',
-      assetType: 'equity_option',
-      orderType: 'limit',
+        "Single-leg option limit sell call. Limit ~60 for strike 220 when AAPL ~275. Place during market hours.",
+      assetType: "equity_option",
+      orderType: "limit",
       defaultOrder: {
-        orderType: 'limit',
-        assetType: 'equity_option',
-        action: 'sell',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "limit",
+        assetType: "equity_option",
+        action: "sell",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 1,
         price: 60,
-        positionEffect: 'open',
-        creditOrDebit: 'credit',
+        positionEffect: "open",
+        creditOrDebit: "credit",
         expirationDate: getNearestFriday(),
         strikePrice: 220,
-        optionType: 'call',
+        optionType: "call",
       },
     },
     {
-      id: 'webull-equity-option-stop-buy-call',
-      label: 'Option - Stop Buy Call (Single Leg)',
+      id: "webull-equity-option-stop-buy-call",
+      label: "Option - Stop Buy Call (Single Leg)",
       description:
-        'Single-leg option stop buy call. Stop must be > market (e.g. ~65 when premium ~55). Place during market hours.',
-      assetType: 'equity_option',
-      orderType: 'stop',
+        "Single-leg option stop buy call. Stop must be > market (e.g. ~65 when premium ~55). Place during market hours.",
+      assetType: "equity_option",
+      orderType: "stop",
       defaultOrder: {
-        orderType: 'stop',
-        assetType: 'equity_option',
-        action: 'buy',
-        timeInForce: 'day',
-        symbol: 'AAPL',
+        orderType: "stop",
+        assetType: "equity_option",
+        action: "buy",
+        timeInForce: "day",
+        symbol: "AAPL",
         orderQty: 1,
         stopPrice: 65,
-        positionEffect: 'open',
-        creditOrDebit: 'debit',
+        positionEffect: "open",
+        creditOrDebit: "debit",
         expirationDate: getNearestFriday(),
         strikePrice: 220,
-        optionType: 'call',
+        optionType: "call",
       },
     },
   ],
@@ -1088,10 +1116,11 @@ const buildPresetPayloadForContext = (
   brokerId: string,
   accountNumber: string | undefined,
   preset: OrderPresetConfig,
-  equityOptionExpirationDate?: string
+  equityOptionExpirationDate?: string,
 ) => {
   // Order object must not contain accountNumber; it is a top-level property only
-  const { accountNumber: _omit, ...orderFields } = preset.defaultOrder as Record<string, unknown>;
+  const { accountNumber: _omit, ...orderFields } =
+    preset.defaultOrder as Record<string, unknown>;
   const payload: any = {
     broker: brokerId,
     order: { ...orderFields },
@@ -1103,7 +1132,7 @@ const buildPresetPayloadForContext = (
   }
 
   // Replace expiration dates in equity_option orders
-  if (preset.assetType === 'equity_option' && equityOptionExpirationDate) {
+  if (preset.assetType === "equity_option" && equityOptionExpirationDate) {
     // Replace expirationDate in single-leg options
     if (payload.order.expirationDate) {
       payload.order.expirationDate = equityOptionExpirationDate;
@@ -1124,78 +1153,120 @@ const buildPresetPayloadForContext = (
 export function TradingPageComponent() {
   const { finatic, addLog } = useFinatic();
   const { mode } = useEnvironmentConfig();
-  const isSandboxMode = mode === 'sandbox';
+  const isSandboxMode = mode === "sandbox";
 
-  // Broker and account selection
-  const [selectedBroker, setSelectedBroker] = useState<string>('');
-  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
-  const [brokers, setBrokers] = useState<any[]>([]);
-  const [connections, setConnections] = useState<any[]>([]);
-  const [activeAccounts, setActiveAccounts] = useState<any[]>([]);
+  // Broker and account selection (v1 account-first; no connection directory APIs)
+  const [selectedBroker, setSelectedBroker] = useState<string>("");
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  const [linkedAccounts, setLinkedAccounts] = useState<any[]>([]);
   const [availableAccounts, setAvailableAccounts] = useState<any[]>([]);
+
+  const brokers = useMemo(() => {
+    const brokersById = new Map<
+      string,
+      { id: string; display_name: string; name: string }
+    >();
+    for (const accountRow of linkedAccounts) {
+      const brokerId = String(
+        accountRow?.brokerId || accountRow?.broker_id || "",
+      ).trim();
+      if (!brokerId) continue;
+      const normalizedBrokerId = brokerId.toLowerCase();
+      if (brokersById.has(normalizedBrokerId)) continue;
+      const displayName = String(
+        accountRow?.brokerName || accountRow?.broker_name || brokerId,
+      ).trim();
+      brokersById.set(normalizedBrokerId, {
+        id: brokerId,
+        display_name: displayName,
+        name: displayName,
+      });
+    }
+    return Array.from(brokersById.values());
+  }, [linkedAccounts]);
 
   // Order form state
   const [customOrder, setCustomOrder] = useState<{
     symbol: string;
     orderQty: number;
-    action: 'buy' | 'sell';
-    orderType: 'market' | 'limit' | 'stop' | 'stop_limit';
-    assetType: 'equity' | 'equity_option' | 'crypto' | 'forex' | 'future' | 'future_option';
-    timeInForce: 'day' | 'gtc' | 'gtd' | 'ioc' | 'fok';
+    action: "buy" | "sell";
+    orderType: "market" | "limit" | "stop" | "stop_limit";
+    assetType:
+      | "equity"
+      | "equity_option"
+      | "crypto"
+      | "forex"
+      | "future"
+      | "future_option";
+    timeInForce: "day" | "gtc" | "gtd" | "ioc" | "fok";
     price?: number;
     stopPrice?: number;
     expireTime?: string;
   }>({
-    symbol: '',
+    symbol: "",
     orderQty: 1,
-    action: 'buy',
-    orderType: 'market',
-    assetType: 'equity',
-    timeInForce: 'day',
+    action: "buy",
+    orderType: "market",
+    assetType: "equity",
+    timeInForce: "day",
   });
 
   // Broker-specific extras (JSON)
-  const [customExtrasText, setCustomExtrasText] = useState<string>('{}');
+  const [customExtrasText, setCustomExtrasText] = useState<string>("{}");
   const [placingCustom, setPlacingCustom] = useState<boolean>(false);
   const [customResponse, setCustomResponse] = useState<any>(null);
   const [isOrdersPlaygroundOpen, setIsOrdersPlaygroundOpen] = useState(true);
   const [isOrderPresetsOpen, setIsOrderPresetsOpen] = useState(true);
 
   // Order presets state
-  const [presetAssetFilter, setPresetAssetFilter] = useState<'all' | SupportedAssetType>('all');
-  const [presetOrderTypeFilter, setPresetOrderTypeFilter] = useState<'all' | SupportedOrderType>(
-    'all'
-  );
+  const [presetAssetFilter, setPresetAssetFilter] = useState<
+    "all" | SupportedAssetType
+  >("all");
+  const [presetOrderTypeFilter, setPresetOrderTypeFilter] = useState<
+    "all" | SupportedOrderType
+  >("all");
   const [expandedPresetId, setExpandedPresetId] = useState<string | null>(null);
-  const [presetPayloadTextById, setPresetPayloadTextById] = useState<Record<string, string>>({});
+  const [presetPayloadTextById, setPresetPayloadTextById] = useState<
+    Record<string, string>
+  >({});
   const [placingPresetId, setPlacingPresetId] = useState<string | null>(null);
-  const [presetResponseById, setPresetResponseById] = useState<Record<string, any>>({});
-  const [expandedResponsePresetIds, setExpandedResponsePresetIds] = useState<Set<string>>(
-    new Set()
-  );
+  const [presetResponseById, setPresetResponseById] = useState<
+    Record<string, any>
+  >({});
+  const [expandedResponsePresetIds, setExpandedResponsePresetIds] = useState<
+    Set<string>
+  >(new Set());
   const [equityOptionExpirationDate, setEquityOptionExpirationDate] =
     useState<string>(getNearestFriday());
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'place' | 'cancel' | 'modify'>('place');
+  const [activeTab, setActiveTab] = useState<"place" | "cancel" | "modify">(
+    "place",
+  );
 
   // Cancel order state
-  const [cancelOrderId, setCancelOrderId] = useState<string>('');
+  const [cancelOrderId, setCancelOrderId] = useState<string>("");
   const [cancellingOrder, setCancellingOrder] = useState<boolean>(false);
   const [cancelResponse, setCancelResponse] = useState<any>(null);
 
   // Modify order state — all optional; only fields the user sets are sent in the delta
-  const [modifyOrderId, setModifyOrderId] = useState<string>('');
+  const [modifyOrderId, setModifyOrderId] = useState<string>("");
   const [modifyOrder, setModifyOrder] = useState<{
     orderQty?: number;
-    orderType?: 'market' | 'limit' | 'stop' | 'stop_limit';
-    assetType?: 'equity' | 'equity_option' | 'crypto' | 'forex' | 'future' | 'future_option';
-    timeInForce?: 'day' | 'gtc' | 'gtd' | 'ioc' | 'fok';
+    orderType?: "market" | "limit" | "stop" | "stop_limit";
+    assetType?:
+      | "equity"
+      | "equity_option"
+      | "crypto"
+      | "forex"
+      | "future"
+      | "future_option";
+    timeInForce?: "day" | "gtc" | "gtd" | "ioc" | "fok";
     price?: number;
     stopPrice?: number;
     expireTime?: string;
   }>({});
-  const [modifyExtrasText, setModifyExtrasText] = useState<string>('{}');
+  const [modifyExtrasText, setModifyExtrasText] = useState<string>("{}");
   const [modifyingOrder, setModifyingOrder] = useState<boolean>(false);
   const [modifyResponse, setModifyResponse] = useState<any>(null);
 
@@ -1203,22 +1274,24 @@ export function TradingPageComponent() {
   type OptionFieldValues = {
     expirationDate: string;
     strikePrice: string;
-    optionType: 'call' | 'put';
-    positionEffect: 'open' | 'close';
+    optionType: "call" | "put";
+    positionEffect: "open" | "close";
   };
 
-  const [customOptionFields, setCustomOptionFields] = useState<OptionFieldValues>({
-    expirationDate: '',
-    strikePrice: '',
-    optionType: 'call',
-    positionEffect: 'open',
-  });
-  const [modifyOptionFields, setModifyOptionFields] = useState<OptionFieldValues>({
-    expirationDate: '',
-    strikePrice: '',
-    optionType: 'call',
-    positionEffect: 'open',
-  });
+  const [customOptionFields, setCustomOptionFields] =
+    useState<OptionFieldValues>({
+      expirationDate: "",
+      strikePrice: "",
+      optionType: "call",
+      positionEffect: "open",
+    });
+  const [modifyOptionFields, setModifyOptionFields] =
+    useState<OptionFieldValues>({
+      expirationDate: "",
+      strikePrice: "",
+      optionType: "call",
+      positionEffect: "open",
+    });
 
   const optionFieldsComplete = (fields: OptionFieldValues): boolean => {
     if (
@@ -1242,179 +1315,81 @@ export function TradingPageComponent() {
 
   // Reset option fields when asset type changes
   useEffect(() => {
-    if (customOrder.assetType !== 'equity_option') {
+    if (customOrder.assetType !== "equity_option") {
       setCustomOptionFields({
-        expirationDate: '',
-        strikePrice: '',
-        optionType: 'call',
-        positionEffect: 'open',
+        expirationDate: "",
+        strikePrice: "",
+        optionType: "call",
+        positionEffect: "open",
       });
     }
   }, [customOrder.assetType]);
 
   useEffect(() => {
-    if (modifyOrder.assetType !== 'equity_option') {
+    if (modifyOrder.assetType !== "equity_option") {
       setModifyOptionFields({
-        expirationDate: '',
-        strikePrice: '',
-        optionType: 'call',
-        positionEffect: 'open',
+        expirationDate: "",
+        strikePrice: "",
+        optionType: "call",
+        positionEffect: "open",
       });
     }
   }, [modifyOrder.assetType]);
   // Sentinel for "empty / don't change" in modify selects
-  const MODIFY_NONE = '__none__';
+  const MODIFY_NONE = "__none__";
 
-  // Load supported brokers (exclude aliases and brokers that don't support trading)
-  useEffect(() => {
-    let cancelled = false;
-    async function loadBrokers() {
-      try {
-        if (!finatic) return;
-        const response = await finatic.getBrokers();
-        const list = response?.success?.data || response;
-        // Filter out aliases and brokers that don't support trading
-        const brokerArray = Array.isArray(list) ? list : Object.values(list || {});
-        const filteredList = brokerArray.filter(
-          (broker: any) => broker.is_alias === false && broker.supports_trading === true
-        );
-        if (!cancelled) setBrokers(filteredList);
-      } catch (err) {
-        console.error('Failed to load brokers:', err);
-      }
-    }
-    void loadBrokers();
-    return () => {
-      cancelled = true;
-    };
-  }, [finatic]);
-
-  // Load active broker connections
+  // Load linked financial accounts via v1
   useEffect(() => {
     if (!finatic) return;
     let cancelled = false;
-    async function loadConnections() {
+    async function loadLinkedAccounts() {
       try {
         if (!finatic) return;
-        const response = await finatic.getBrokerConnections();
-        const list = response?.success?.data || response;
-        if (!cancelled) {
-          setConnections(Array.isArray(list) ? list : []);
-        }
-      } catch (err) {
-        console.error('Failed to load connections:', err);
-      }
-    }
-    void loadConnections();
-    return () => {
-      cancelled = true;
-    };
-  }, [finatic]);
-
-  // Load active accounts
-  useEffect(() => {
-    if (!finatic) return;
-    let cancelled = false;
-    async function loadActiveAccounts() {
-      try {
-        if (!finatic) return;
-        const response = await finatic.getAllAccounts();
-        const all = response?.success?.data || response;
-        const accounts = Array.isArray(all) ? all : [];
-        // Filter active accounts
+        const response = await getFinaticV1Client(finatic).listAccounts({
+          includeSyncStatus: true,
+          limit: 100,
+          offset: 0,
+        });
+        const rows = response?.success?.data || [];
+        const accounts = Array.isArray(rows) ? rows : [];
         const active = accounts.filter(
           (account: any) =>
-            account.accountStatus === 'ACTIVE' ||
-            account.status === 'ACTIVE' ||
-            account.status === 'active' ||
-            account.active === true
+            account.accountStatus === "ACTIVE" ||
+            account.status === "ACTIVE" ||
+            account.status === "active" ||
+            account.active === true ||
+            !account.accountStatus,
         );
         if (!cancelled) {
-          setActiveAccounts(active);
+          setLinkedAccounts(active);
         }
       } catch (err) {
-        console.error('Failed to load active accounts:', err);
+        console.error("Failed to load v1 accounts:", err);
       }
     }
-    void loadActiveAccounts();
+    void loadLinkedAccounts();
     return () => {
       cancelled = true;
     };
   }, [finatic]);
 
-  // Filter available accounts based on mode and selected broker
+  // Filter available accounts by selected broker
   const filteredAccounts = useMemo(() => {
     if (!selectedBroker) return [];
 
-    const normalizedSelectedBroker = String(selectedBroker).toLowerCase().trim();
+    const normalizedSelectedBroker = String(selectedBroker)
+      .toLowerCase()
+      .trim();
 
-    // Create a map of connection_id -> broker_id from connections
-    // Also create a set of connected connection IDs for the selected broker
-    const connectionToBrokerMap = new Map<string, string>();
-    const connectedConnectionIds = new Set<string>();
-
-    connections.forEach((c: any) => {
-      // Try multiple field names for connection ID (camelCase and snake_case)
-      const connectionId = c?.id || c?.connectionId || c?.connection_id || '';
-      // Try multiple field names for broker ID (camelCase and snake_case)
-      const brokerId = String(c?.brokerId || c?.broker_id || c?.broker || '')
+    return linkedAccounts.filter((accountRow: any) => {
+      const accountBrokerId = String(
+        accountRow?.brokerId || accountRow?.broker_id || "",
+      )
         .toLowerCase()
         .trim();
-      const isConnected =
-        c?.status === 'connected' ||
-        c?.status === 'active' ||
-        c?.status === 'ACTIVE' ||
-        Boolean(c?.is_active || c?.active || c?.isActive);
-
-      if (connectionId) {
-        connectionToBrokerMap.set(connectionId, brokerId);
-        if (isConnected && brokerId === normalizedSelectedBroker) {
-          connectedConnectionIds.add(connectionId);
-        }
-      }
+      return accountBrokerId === normalizedSelectedBroker;
     });
-
-    // Filter accounts based on their connection_id or broker_id
-    return activeAccounts.filter((a: any) => {
-      // Try multiple field names for connection ID (camelCase and snake_case)
-      const accountConnectionId =
-        a?.connectionId || a?.connection_id || a?.user_broker_connection_id || '';
-
-      // Try multiple field names for broker ID (camelCase and snake_case)
-      const accountBrokerId = String(a?.brokerId || a?.broker_id || a?.broker || '')
-        .toLowerCase()
-        .trim();
-
-      // First, try to match by broker ID directly (most reliable)
-      if (accountBrokerId === normalizedSelectedBroker) {
-        // In sandbox mode, show all accounts for the selected broker
-        if (isSandboxMode) {
-          return true;
-        }
-        // In live mode, verify the connection is connected
-        if (accountConnectionId) {
-          return connectedConnectionIds.has(accountConnectionId);
-        }
-        // If no connection ID but broker matches, allow it (fallback)
-        return true;
-      }
-
-      // Fallback: Match account to broker via connection map
-      if (accountConnectionId) {
-        const mappedBrokerId = connectionToBrokerMap.get(accountConnectionId);
-        if (mappedBrokerId === normalizedSelectedBroker) {
-          // In sandbox mode, show all accounts for the selected broker
-          if (isSandboxMode) {
-            return true;
-          }
-          // In live mode, verify the connection is connected
-          return connectedConnectionIds.has(accountConnectionId);
-        }
-      }
-
-      return false;
-    });
-  }, [selectedBroker, activeAccounts, connections, isSandboxMode]);
+  }, [selectedBroker, linkedAccounts]);
 
   // Update available accounts when filtered accounts change
   useEffect(() => {
@@ -1422,11 +1397,11 @@ export function TradingPageComponent() {
     // Always auto-select first account when accounts change
     if (filteredAccounts.length > 0) {
       const firstAccount = filteredAccounts[0];
-      const accountId = firstAccount.broker_provided_account_id || firstAccount.account_id || '';
-      setSelectedAccountId(String(accountId));
+      const finaticAccountId = firstAccount.id || "";
+      setSelectedAccountId(String(finaticAccountId));
     } else {
       // Clear selection if no accounts available
-      setSelectedAccountId('');
+      setSelectedAccountId("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredAccounts]); // Only depend on filteredAccounts, not selectedAccountId
@@ -1434,27 +1409,25 @@ export function TradingPageComponent() {
   // Get selected account details
   const selectedAccount = useMemo(() => {
     return availableAccounts.find(
-      (a: any) => String(a.broker_provided_account_id || a.account_id) === selectedAccountId
+      (accountRow: any) => String(accountRow.id) === selectedAccountId,
     );
   }, [availableAccounts, selectedAccountId]);
 
-  // Check if broker is connected
+  // Broker is "connected" when at least one linked account exists for it
   const isBrokerConnected = useMemo(() => {
     if (!selectedBroker) return false;
-    return connections.some((c: any) => {
-      // Normalize broker IDs for comparison (handle case sensitivity and format differences)
-      const connectionBrokerId = String(c?.broker_id || c?.broker || '')
+    const normalizedSelectedBroker = String(selectedBroker)
+      .toLowerCase()
+      .trim();
+    return linkedAccounts.some((accountRow: any) => {
+      const accountBrokerId = String(
+        accountRow?.brokerId || accountRow?.broker_id || "",
+      )
         .toLowerCase()
         .trim();
-      const selectedBrokerId = String(selectedBroker).toLowerCase().trim();
-
-      // Check if status is 'connected' (the actual field name from BrokerConnection type)
-      const isConnected =
-        c?.status === 'connected' || c?.status === 'active' || Boolean(c?.is_active || c?.active);
-
-      return connectionBrokerId === selectedBrokerId && isConnected;
+      return accountBrokerId === normalizedSelectedBroker;
     });
-  }, [selectedBroker, connections]);
+  }, [selectedBroker, linkedAccounts]);
 
   // Seed preset payloads when broker, account context, or expiration date changes
   useEffect(() => {
@@ -1469,31 +1442,39 @@ export function TradingPageComponent() {
     setPresetPayloadTextById((previous) => {
       const next: Record<string, string> = {};
       const accountNumber =
-        selectedAccount?.broker_provided_account_id ||
-        selectedAccount?.account_id ||
+        selectedAccount?.accountNumber ||
+        selectedAccount?.account_number ||
+        selectedAccount?.accountId ||
         selectedAccountId ||
-        '';
+        "";
 
       for (const preset of presetsForBroker) {
         const payload = buildPresetPayloadForContext(
           selectedBroker,
           accountNumber || undefined,
           preset,
-          equityOptionExpirationDate
+          equityOptionExpirationDate,
         );
         next[preset.id] = JSON.stringify(payload, null, 2);
       }
 
       return next;
     });
-  }, [selectedBroker, selectedAccount, selectedAccountId, equityOptionExpirationDate]);
+  }, [
+    selectedBroker,
+    selectedAccount,
+    selectedAccountId,
+    equityOptionExpirationDate,
+  ]);
 
   // Build the payload that will be sent (for preview)
   const orderPayloadPreview = useMemo(() => {
     if (!selectedBroker || !selectedAccountId) return null;
 
     const accountNumber =
-      selectedAccount?.broker_provided_account_id ||
+      selectedAccount?.accountNumber ||
+      selectedAccount?.account_number ||
+      selectedAccount?.accountId ||
       selectedAccount?.account_id ||
       selectedAccountId;
 
@@ -1539,7 +1520,10 @@ export function TradingPageComponent() {
     }
 
     // Add option fields if assetType is equity_option
-    if (customOrder.assetType === 'equity_option' && optionFieldsComplete(customOptionFields)) {
+    if (
+      customOrder.assetType === "equity_option" &&
+      optionFieldsComplete(customOptionFields)
+    ) {
       payload.order = {
         ...payload.order,
         ...buildOptionPayload(customOptionFields),
@@ -1559,21 +1543,21 @@ export function TradingPageComponent() {
   // Place custom order
   const placeCustomOrder = async () => {
     if (!finatic) {
-      addLog('error', 'SDK not initialized');
+      addLog("error", "SDK not initialized");
       return;
     }
     if (!selectedBroker) {
-      addLog('error', 'Select a broker first');
+      addLog("error", "Select a broker first");
       return;
     }
     if (!selectedAccountId) {
-      addLog('error', 'Select an account first');
+      addLog("error", "Select an account first");
       return;
     }
 
     // In live mode, verify broker is connected
     if (!isSandboxMode && !isBrokerConnected) {
-      addLog('error', 'Broker must be connected to place orders in live mode');
+      addLog("error", "Broker must be connected to place orders in live mode");
       return;
     }
 
@@ -1581,7 +1565,7 @@ export function TradingPageComponent() {
     try {
       extras = customExtrasText ? JSON.parse(customExtrasText) : {};
     } catch {
-      addLog('error', 'Invalid JSON in extras');
+      addLog("error", "Invalid JSON in extras");
       return;
     }
 
@@ -1590,23 +1574,27 @@ export function TradingPageComponent() {
 
     try {
       // Validate required fields
-      if (!selectedBroker || selectedBroker.trim() === '') {
-        throw new Error('Broker is required. Please select a broker.');
+      if (!selectedBroker || selectedBroker.trim() === "") {
+        throw new Error("Broker is required. Please select a broker.");
       }
 
       // Build order payload with flattened structure (new SDK format)
       const accountNumber =
-        selectedAccount?.broker_provided_account_id ||
+        selectedAccount?.accountNumber ||
+        selectedAccount?.account_number ||
+        selectedAccount?.accountId ||
         selectedAccount?.account_id ||
         selectedAccountId;
 
       // Build flat order parameters
       // Double-check broker is still set (should be validated above, but be safe)
       const normalizedBroker =
-        selectedBroker && selectedBroker.trim() !== '' ? selectedBroker.trim().toLowerCase() : '';
+        selectedBroker && selectedBroker.trim() !== ""
+          ? selectedBroker.trim().toLowerCase()
+          : "";
 
       if (!normalizedBroker) {
-        throw new Error('Broker is required. Please select a broker.');
+        throw new Error("Broker is required. Please select a broker.");
       }
 
       // Build v1 account-order body. The financial accountId stays in the URL path.
@@ -1636,7 +1624,10 @@ export function TradingPageComponent() {
       }
 
       // Add option fields if assetType is equity_option
-      if (customOrder.assetType === 'equity_option' && optionFieldsComplete(customOptionFields)) {
+      if (
+        customOrder.assetType === "equity_option" &&
+        optionFieldsComplete(customOptionFields)
+      ) {
         Object.assign(orderObject, buildOptionPayload(customOptionFields));
       }
 
@@ -1648,22 +1639,30 @@ export function TradingPageComponent() {
       };
 
       // Debug: Log the order params being sent
-      console.log('🔍 placeCustomOrder - orderParams:', JSON.stringify(orderParams, null, 2));
-      console.log('🔍 placeCustomOrder - selectedBroker:', selectedBroker);
+      console.log(
+        "🔍 placeCustomOrder - orderParams:",
+        JSON.stringify(orderParams, null, 2),
+      );
+      console.log("🔍 placeCustomOrder - selectedBroker:", selectedBroker);
 
-      const response = await finatic.v1.createAccountOrder({
+      const response = await getFinaticV1Client(finatic).createAccountOrder({
         accountId: selectedAccountId,
         body: orderParams,
         idempotencyKey: createOrderIdempotencyKey(),
       });
 
-      const result = response?.success?.data as { message?: string } | undefined;
+      const result = response?.success?.data as
+        | { message?: string }
+        | undefined;
       setCustomResponse(response);
-      addLog('success', `Order placed successfully - ${result?.message || 'ok'}`);
+      addLog(
+        "success",
+        `Order placed successfully - ${result?.message || "ok"}`,
+      );
     } catch (e: any) {
-      const errorMsg = e?.message || 'Order failed';
+      const errorMsg = e?.message || "Order failed";
       setCustomResponse({ error: errorMsg });
-      addLog('error', errorMsg);
+      addLog("error", errorMsg);
     } finally {
       setPlacingCustom(false);
     }
@@ -1675,30 +1674,35 @@ export function TradingPageComponent() {
   const placePresetOrder = useCallback(
     async (preset: OrderPresetConfig) => {
       if (!finatic) {
-        addLog('error', 'SDK not initialized');
+        addLog("error", "SDK not initialized");
         return;
       }
       // Validate required fields
-      if (!selectedBroker || selectedBroker.trim() === '') {
-        addLog('error', 'Broker is required. Please select a broker.');
+      if (!selectedBroker || selectedBroker.trim() === "") {
+        addLog("error", "Broker is required. Please select a broker.");
         return;
       }
       if (!selectedBroker) {
-        addLog('error', 'Select a broker first');
+        addLog("error", "Select a broker first");
         return;
       }
       if (!selectedAccountId) {
-        addLog('error', 'Select an account first');
+        addLog("error", "Select an account first");
         return;
       }
 
       if (!isSandboxMode && !isBrokerConnected) {
-        addLog('error', 'Broker must be connected to place orders from presets in live mode');
+        addLog(
+          "error",
+          "Broker must be connected to place orders from presets in live mode",
+        );
         return;
       }
 
       const accountNumber =
-        selectedAccount?.broker_provided_account_id ||
+        selectedAccount?.accountNumber ||
+        selectedAccount?.account_number ||
+        selectedAccount?.accountId ||
         selectedAccount?.account_id ||
         selectedAccountId;
 
@@ -1711,19 +1715,19 @@ export function TradingPageComponent() {
               selectedBroker,
               accountNumber,
               preset,
-              equityOptionExpirationDate
+              equityOptionExpirationDate,
             ),
             null,
-            2
+            2,
           );
         parsedPayload = JSON.parse(rawText);
       } catch {
-        addLog('error', 'Invalid JSON in preset payload');
+        addLog("error", "Invalid JSON in preset payload");
         return;
       }
 
-      if (!parsedPayload || typeof parsedPayload !== 'object') {
-        addLog('error', 'Preset payload must be a JSON object');
+      if (!parsedPayload || typeof parsedPayload !== "object") {
+        addLog("error", "Preset payload must be a JSON object");
         return;
       }
 
@@ -1734,15 +1738,17 @@ export function TradingPageComponent() {
       // Use selectedBroker if it's set, otherwise try to get from payload
       // selectedBroker should always be set since we validate it above
       const brokerValue =
-        selectedBroker && selectedBroker.trim() !== ''
+        selectedBroker && selectedBroker.trim() !== ""
           ? selectedBroker.trim().toLowerCase()
-          : (orderData.broker || parsedPayload.broker || '').trim().toLowerCase();
+          : (orderData.broker || parsedPayload.broker || "")
+              .trim()
+              .toLowerCase();
 
       // Validate broker is set (double-check)
-      if (!brokerValue || brokerValue === '') {
+      if (!brokerValue || brokerValue === "") {
         addLog(
-          'error',
-          `Broker is required. selectedBroker="${selectedBroker}", orderData.broker="${orderData.broker}", parsedPayload.broker="${parsedPayload.broker}"`
+          "error",
+          `Broker is required. selectedBroker="${selectedBroker}", orderData.broker="${orderData.broker}", parsedPayload.broker="${parsedPayload.broker}"`,
         );
         return;
       }
@@ -1778,17 +1784,17 @@ export function TradingPageComponent() {
       Object.keys(orderData).forEach((key) => {
         if (
           ![
-            'accountNumber',
-            'orderType',
-            'assetType',
-            'action',
-            'timeInForce',
-            'symbol',
-            'orderQty',
-            'price',
-            'stopPrice',
-            'expireTime',
-            'broker',
+            "accountNumber",
+            "orderType",
+            "assetType",
+            "action",
+            "timeInForce",
+            "symbol",
+            "orderQty",
+            "price",
+            "stopPrice",
+            "expireTime",
+            "broker",
           ].includes(key)
         ) {
           orderObject[key] = orderData[key];
@@ -1799,28 +1805,42 @@ export function TradingPageComponent() {
       setPresetResponseById((previous) => ({ ...previous, [preset.id]: null }));
 
       try {
-        const response = await finatic.v1.createAccountOrder({
+        const response = await getFinaticV1Client(finatic).createAccountOrder({
           accountId: selectedAccountId,
           body: orderParams,
           idempotencyKey: createOrderIdempotencyKey(),
         });
 
-        const result = response?.success?.data as { message?: string } | undefined;
-        setPresetResponseById((previous) => ({ ...previous, [preset.id]: response }));
-        setExpandedResponsePresetIds((previous) => new Set(previous).add(preset.id));
+        const result = response?.success?.data as
+          | { message?: string }
+          | undefined;
+        setPresetResponseById((previous) => ({
+          ...previous,
+          [preset.id]: response,
+        }));
+        setExpandedResponsePresetIds((previous) =>
+          new Set(previous).add(preset.id),
+        );
         setCustomResponse(response);
         addLog(
-          'success',
-          `Preset "${preset.label}" placed successfully - ${result?.message || 'ok'}`
+          "success",
+          `Preset "${preset.label}" placed successfully - ${result?.message || "ok"}`,
         );
       } catch (error: any) {
-        const errorMessage = error?.message || 'Preset order failed';
+        const errorMessage = error?.message || "Preset order failed";
         const errorResponse = { error: errorMessage };
-        setPresetResponseById((previous) => ({ ...previous, [preset.id]: errorResponse }));
-        setExpandedResponsePresetIds((previous) => new Set(previous).add(preset.id));
-        addLog('error', errorMessage);
+        setPresetResponseById((previous) => ({
+          ...previous,
+          [preset.id]: errorResponse,
+        }));
+        setExpandedResponsePresetIds((previous) =>
+          new Set(previous).add(preset.id),
+        );
+        addLog("error", errorMessage);
       } finally {
-        setPlacingPresetId((previousId) => (previousId === preset.id ? null : previousId));
+        setPlacingPresetId((previousId) =>
+          previousId === preset.id ? null : previousId,
+        );
       }
     },
     [
@@ -1833,51 +1853,57 @@ export function TradingPageComponent() {
       selectedAccount,
       presetPayloadTextById,
       equityOptionExpirationDate,
-    ]
+    ],
   );
 
   // Cancel order
   const cancelOrder = async () => {
     if (!finatic) {
-      addLog('error', 'SDK not initialized');
-      setCancelResponse({ error: 'SDK not initialized' });
+      addLog("error", "SDK not initialized");
+      setCancelResponse({ error: "SDK not initialized" });
       return;
     }
     if (!selectedBroker) {
-      addLog('error', 'Select a broker first');
-      setCancelResponse({ error: 'Select a broker first' });
+      addLog("error", "Select a broker first");
+      setCancelResponse({ error: "Select a broker first" });
       return;
     }
     if (!selectedAccountId) {
-      addLog('error', 'Select an account first');
-      setCancelResponse({ error: 'Select an account first' });
+      addLog("error", "Select an account first");
+      setCancelResponse({ error: "Select an account first" });
       return;
     }
     if (!cancelOrderId?.trim()) {
-      addLog('error', 'Enter an order ID to cancel');
-      setCancelResponse({ error: 'Enter an order ID to cancel' });
+      addLog("error", "Enter an order ID to cancel");
+      setCancelResponse({ error: "Enter an order ID to cancel" });
       return;
     }
 
     if (!isSandboxMode && !isBrokerConnected) {
-      addLog('error', 'Broker must be connected to cancel orders in live mode');
-      setCancelResponse({ error: 'Broker must be connected to cancel orders in live mode' });
+      addLog("error", "Broker must be connected to cancel orders in live mode");
+      setCancelResponse({
+        error: "Broker must be connected to cancel orders in live mode",
+      });
       return;
     }
 
     const accountNumber =
-      selectedAccount?.broker_provided_account_id ||
+      selectedAccount?.accountNumber ||
+      selectedAccount?.account_number ||
+      selectedAccount?.accountId ||
       selectedAccount?.account_id ||
       selectedAccountId;
     // API accepts account_number as string | number; SDK types say number — pass number when numeric, else string (assertion for non-numeric IDs e.g. UUID)
     const num = Number(accountNumber);
-    const accountNumberParam = (!Number.isNaN(num) ? num : String(accountNumber)) as number;
+    const accountNumberParam = (
+      !Number.isNaN(num) ? num : String(accountNumber)
+    ) as number;
 
     setCancellingOrder(true);
     setCancelResponse(null);
 
     try {
-      const response = await finatic.v1.cancelAccountOrder({
+      const response = await getFinaticV1Client(finatic).cancelAccountOrder({
         accountId: selectedAccountId,
         orderId: cancelOrderId.trim(),
         body: {
@@ -1887,14 +1913,19 @@ export function TradingPageComponent() {
         },
         idempotencyKey: createOrderIdempotencyKey(),
       });
-      const result = (response?.success?.data || response) as { message?: string };
+      const result = (response?.success?.data || response) as {
+        message?: string;
+      };
 
       setCancelResponse(result ?? response);
-      addLog('success', `Order cancelled successfully - ${result?.message ?? 'ok'}`);
+      addLog(
+        "success",
+        `Order cancelled successfully - ${result?.message ?? "ok"}`,
+      );
     } catch (e: any) {
-      const errorMsg = e?.message ?? 'Cancel failed';
+      const errorMsg = e?.message ?? "Cancel failed";
       setCancelResponse({ error: errorMsg });
-      addLog('error', errorMsg);
+      addLog("error", errorMsg);
     } finally {
       setCancellingOrder(false);
     }
@@ -1905,12 +1936,14 @@ export function TradingPageComponent() {
     if (!cancelOrderId || !selectedBroker || !selectedAccountId) return null;
 
     const accountNumber =
-      selectedAccount?.broker_provided_account_id ||
+      selectedAccount?.accountNumber ||
+      selectedAccount?.account_number ||
+      selectedAccount?.accountId ||
       selectedAccount?.account_id ||
       selectedAccountId;
 
     return {
-      method: 'DELETE',
+      method: "DELETE",
       url: `/api/v1/accounts/${selectedAccountId}/orders/${cancelOrderId}`,
       body: {
         broker: selectedBroker.trim().toLowerCase(),
@@ -1926,7 +1959,9 @@ export function TradingPageComponent() {
     if (!selectedBroker || !selectedAccountId || !modifyOrderId) return null;
 
     const accountNumber =
-      selectedAccount?.broker_provided_account_id ||
+      selectedAccount?.accountNumber ||
+      selectedAccount?.account_number ||
+      selectedAccount?.accountId ||
       selectedAccount?.account_id ||
       selectedAccountId;
 
@@ -1946,10 +1981,16 @@ export function TradingPageComponent() {
     ) {
       orderObject.orderQty = modifyOrder.orderQty;
     }
-    if (modifyOrder.price !== undefined && Number.isFinite(Number(modifyOrder.price))) {
+    if (
+      modifyOrder.price !== undefined &&
+      Number.isFinite(Number(modifyOrder.price))
+    ) {
       orderObject.price = modifyOrder.price;
     }
-    if (modifyOrder.stopPrice !== undefined && Number.isFinite(Number(modifyOrder.stopPrice))) {
+    if (
+      modifyOrder.stopPrice !== undefined &&
+      Number.isFinite(Number(modifyOrder.stopPrice))
+    ) {
       orderObject.stopPrice = modifyOrder.stopPrice;
     }
     if (modifyOrder.expireTime) {
@@ -1957,9 +1998,10 @@ export function TradingPageComponent() {
     }
     if (modifyOrder.timeInForce) {
       orderObject.time_in_force =
-        typeof modifyOrder.timeInForce === 'string'
+        typeof modifyOrder.timeInForce === "string"
           ? modifyOrder.timeInForce
-          : (modifyOrder.timeInForce as any)?.time_in_force ?? modifyOrder.timeInForce;
+          : ((modifyOrder.timeInForce as any)?.time_in_force ??
+            modifyOrder.timeInForce);
     }
     if (modifyOrder.orderType) orderObject.orderType = modifyOrder.orderType;
     if (modifyOrder.assetType) orderObject.assetType = modifyOrder.assetType;
@@ -1968,7 +2010,10 @@ export function TradingPageComponent() {
       Object.assign(orderObject, extras);
     }
 
-    if (modifyOrder.assetType === 'equity_option' && optionFieldsComplete(modifyOptionFields)) {
+    if (
+      modifyOrder.assetType === "equity_option" &&
+      optionFieldsComplete(modifyOptionFields)
+    ) {
       Object.assign(orderObject, buildOptionPayload(modifyOptionFields));
     }
 
@@ -1993,25 +2038,25 @@ export function TradingPageComponent() {
   // Modify order
   const modifyExistingOrder = async () => {
     if (!finatic) {
-      addLog('error', 'SDK not initialized');
+      addLog("error", "SDK not initialized");
       return;
     }
     if (!selectedBroker) {
-      addLog('error', 'Select a broker first');
+      addLog("error", "Select a broker first");
       return;
     }
     if (!selectedAccountId) {
-      addLog('error', 'Select an account first');
+      addLog("error", "Select an account first");
       return;
     }
     if (!modifyOrderId) {
-      addLog('error', 'Enter an order ID to modify');
+      addLog("error", "Enter an order ID to modify");
       return;
     }
 
     // In live mode, verify broker is connected
     if (!isSandboxMode && !isBrokerConnected) {
-      addLog('error', 'Broker must be connected to modify orders in live mode');
+      addLog("error", "Broker must be connected to modify orders in live mode");
       return;
     }
 
@@ -2019,7 +2064,7 @@ export function TradingPageComponent() {
     try {
       extras = modifyExtrasText ? JSON.parse(modifyExtrasText) : {};
     } catch {
-      addLog('error', 'Invalid JSON in extras');
+      addLog("error", "Invalid JSON in extras");
       return;
     }
 
@@ -2028,7 +2073,9 @@ export function TradingPageComponent() {
 
     try {
       const accountNumber =
-        selectedAccount?.broker_provided_account_id ||
+        selectedAccount?.accountNumber ||
+        selectedAccount?.account_number ||
+        selectedAccount?.accountId ||
         selectedAccount?.account_id ||
         selectedAccountId;
 
@@ -2040,28 +2087,43 @@ export function TradingPageComponent() {
       ) {
         orderObject.orderQty = modifyOrder.orderQty;
       }
-      if (modifyOrder.price !== undefined && Number.isFinite(Number(modifyOrder.price))) {
+      if (
+        modifyOrder.price !== undefined &&
+        Number.isFinite(Number(modifyOrder.price))
+      ) {
         orderObject.price = modifyOrder.price;
       }
-      if (modifyOrder.stopPrice !== undefined && Number.isFinite(Number(modifyOrder.stopPrice))) {
+      if (
+        modifyOrder.stopPrice !== undefined &&
+        Number.isFinite(Number(modifyOrder.stopPrice))
+      ) {
         orderObject.stopPrice = modifyOrder.stopPrice;
       }
-      if (modifyOrder.expireTime) orderObject.expireTime = modifyOrder.expireTime;
+      if (modifyOrder.expireTime)
+        orderObject.expireTime = modifyOrder.expireTime;
       if (modifyOrder.timeInForce) {
         orderObject.time_in_force =
-          typeof modifyOrder.timeInForce === 'string'
+          typeof modifyOrder.timeInForce === "string"
             ? modifyOrder.timeInForce
-            : (modifyOrder.timeInForce as any)?.time_in_force ?? modifyOrder.timeInForce;
+            : ((modifyOrder.timeInForce as any)?.time_in_force ??
+              modifyOrder.timeInForce);
       }
       if (modifyOrder.orderType) orderObject.orderType = modifyOrder.orderType;
       if (modifyOrder.assetType) orderObject.assetType = modifyOrder.assetType;
-      if (extras && Object.keys(extras).length > 0) Object.assign(orderObject, extras);
-      if (modifyOrder.assetType === 'equity_option' && optionFieldsComplete(modifyOptionFields)) {
+      if (extras && Object.keys(extras).length > 0)
+        Object.assign(orderObject, extras);
+      if (
+        modifyOrder.assetType === "equity_option" &&
+        optionFieldsComplete(modifyOptionFields)
+      ) {
         Object.assign(orderObject, buildOptionPayload(modifyOptionFields));
       }
 
       if (Object.keys(orderObject).length === 0) {
-        addLog('error', 'Set at least one field to change (e.g. Quantity, Price, Stop Price)');
+        addLog(
+          "error",
+          "Set at least one field to change (e.g. Quantity, Price, Stop Price)",
+        );
         setModifyingOrder(false);
         return;
       }
@@ -2077,15 +2139,21 @@ export function TradingPageComponent() {
         idempotencyKey: createOrderIdempotencyKey(),
       };
 
-      const response = await finatic.v1.modifyAccountOrder(modifyParams);
-      const result = (response?.success?.data || response) as { message?: string };
+      const response =
+        await getFinaticV1Client(finatic).modifyAccountOrder(modifyParams);
+      const result = (response?.success?.data || response) as {
+        message?: string;
+      };
 
       setModifyResponse(result);
-      addLog('success', `Order modified successfully - ${result?.message || 'ok'}`);
+      addLog(
+        "success",
+        `Order modified successfully - ${result?.message || "ok"}`,
+      );
     } catch (e: any) {
-      const errorMsg = e?.message || 'Modify failed';
+      const errorMsg = e?.message || "Modify failed";
       setModifyResponse({ error: errorMsg });
-      addLog('error', errorMsg);
+      addLog("error", errorMsg);
     } finally {
       setModifyingOrder(false);
     }
@@ -2105,7 +2173,10 @@ export function TradingPageComponent() {
         </div>
         <div className="flex-shrink-0">
           {!isSandboxMode && (
-            <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+            <Badge
+              variant="secondary"
+              className="bg-blue-500/10 text-blue-400 border-blue-500/20"
+            >
               Live Mode
             </Badge>
           )}
@@ -2171,8 +2242,13 @@ export function TradingPageComponent() {
                 {/* Broker and Account Selection */}
                 <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-foreground text-xs sm:text-sm">Broker</Label>
-                    <Select value={selectedBroker} onValueChange={setSelectedBroker}>
+                    <Label className="text-foreground text-xs sm:text-sm">
+                      Broker
+                    </Label>
+                    <Select
+                      value={selectedBroker}
+                      onValueChange={setSelectedBroker}
+                    >
                       <SelectTrigger className="bg-input border-border text-foreground">
                         <SelectValue placeholder="Select a broker" />
                       </SelectTrigger>
@@ -2193,7 +2269,8 @@ export function TradingPageComponent() {
                         )}
                         {!isSandboxMode && !isBrokerConnected && (
                           <span className="text-xs text-yellow-600 dark:text-yellow-400">
-                            Not connected. Connect it first to place orders in live mode.
+                            Not connected. Connect it first to place orders in
+                            live mode.
                           </span>
                         )}
                       </div>
@@ -2201,16 +2278,21 @@ export function TradingPageComponent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-foreground text-xs sm:text-sm">Account</Label>
-                    <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                    <Label className="text-foreground text-xs sm:text-sm">
+                      Account
+                    </Label>
+                    <Select
+                      value={selectedAccountId}
+                      onValueChange={setSelectedAccountId}
+                    >
                       <SelectTrigger className="bg-input border-border text-foreground">
                         <SelectValue
                           placeholder={
                             availableAccounts.length
-                              ? 'Select an account'
+                              ? "Select an account"
                               : selectedBroker
-                                ? 'No accounts available'
-                                : 'Select broker first'
+                                ? "No accounts available"
+                                : "Select broker first"
                           }
                         />
                       </SelectTrigger>
@@ -2220,19 +2302,27 @@ export function TradingPageComponent() {
                           const uniqueKey =
                             a.id ||
                             a.accountId ||
-                            a.broker_provided_account_id ||
+                            a.accountNumber ||
+                            a.account_number ||
+                            a.accountId ||
                             a.account_id ||
-                            '';
+                            "";
                           const accountId = String(
-                            a.broker_provided_account_id || a.account_id || a.accountId || ''
+                            a.accountNumber ||
+                            a.account_number ||
+                            a.accountId ||
+                              a.accountId ||
+                              "",
                           );
                           const accountName =
                             a.account_name ||
                             a.accountName ||
-                            a.broker_provided_account_id ||
+                            a.accountNumber ||
+                            a.account_number ||
+                            a.accountId ||
                             a.account_id ||
                             a.accountId ||
-                            'Unknown Account';
+                            "Unknown Account";
                           return (
                             <SelectItem key={uniqueKey} value={accountId}>
                               {accountName}
@@ -2243,21 +2333,26 @@ export function TradingPageComponent() {
                     </Select>
                     {selectedAccount && (
                       <p className="text-xs text-muted-foreground">
-                        Account ID:{' '}
-                        {selectedAccount.broker_provided_account_id || selectedAccount.account_id}
+                        Account ID:{" "}
+                        {selectedAccount.accountNumber ||
+                          selectedAccount.account_number ||
+                          selectedAccount.accountId ||
+                          selectedAccount.account_id}
                       </p>
                     )}
                   </div>
                 </div>
 
-                {selectedBroker && availableAccounts.length === 0 && !isSandboxMode && (
-                  <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-3">
-                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                      No accounts available for this broker. Make sure the broker is connected and
-                      has active accounts.
-                    </p>
-                  </div>
-                )}
+                {selectedBroker &&
+                  availableAccounts.length === 0 &&
+                  !isSandboxMode && (
+                    <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-3">
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                        No accounts available for this broker. Make sure the
+                        broker is connected and has active accounts.
+                      </p>
+                    </div>
+                  )}
 
                 {/* Order Form */}
                 {selectedBroker && availableAccounts.length > 0 && (
@@ -2270,7 +2365,10 @@ export function TradingPageComponent() {
                             className="bg-input border-border text-foreground w-full"
                             value={customOrder.symbol}
                             onChange={(e) =>
-                              setCustomOrder((p) => ({ ...p, symbol: e.target.value }))
+                              setCustomOrder((p) => ({
+                                ...p,
+                                symbol: e.target.value,
+                              }))
                             }
                             placeholder="AAPL"
                           />
@@ -2282,7 +2380,10 @@ export function TradingPageComponent() {
                             className="bg-input border-border text-foreground w-full"
                             value={customOrder.orderQty}
                             onChange={(e) =>
-                              setCustomOrder((p) => ({ ...p, orderQty: Number(e.target.value) }))
+                              setCustomOrder((p) => ({
+                                ...p,
+                                orderQty: Number(e.target.value),
+                              }))
                             }
                             min="1"
                           />
@@ -2292,7 +2393,10 @@ export function TradingPageComponent() {
                           <Select
                             value={customOrder.action}
                             onValueChange={(v) =>
-                              setCustomOrder((p) => ({ ...p, action: v as any }))
+                              setCustomOrder((p) => ({
+                                ...p,
+                                action: v as any,
+                              }))
                             }
                           >
                             <SelectTrigger className="bg-input border-border text-foreground w-full">
@@ -2309,7 +2413,10 @@ export function TradingPageComponent() {
                           <Select
                             value={customOrder.orderType}
                             onValueChange={(v) =>
-                              setCustomOrder((p) => ({ ...p, orderType: v as any }))
+                              setCustomOrder((p) => ({
+                                ...p,
+                                orderType: v as any,
+                              }))
                             }
                           >
                             <SelectTrigger className="bg-input border-border text-foreground w-full">
@@ -2319,7 +2426,9 @@ export function TradingPageComponent() {
                               <SelectItem value="market">Market</SelectItem>
                               <SelectItem value="limit">Limit</SelectItem>
                               <SelectItem value="stop">Stop</SelectItem>
-                              <SelectItem value="stop_limit">Stop Limit</SelectItem>
+                              <SelectItem value="stop_limit">
+                                Stop Limit
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -2328,7 +2437,10 @@ export function TradingPageComponent() {
                           <Select
                             value={customOrder.assetType}
                             onValueChange={(v) =>
-                              setCustomOrder((p) => ({ ...p, assetType: v as any }))
+                              setCustomOrder((p) => ({
+                                ...p,
+                                assetType: v as any,
+                              }))
                             }
                           >
                             <SelectTrigger className="bg-input border-border text-foreground w-full">
@@ -2336,20 +2448,29 @@ export function TradingPageComponent() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="equity">Equity</SelectItem>
-                              <SelectItem value="equity_option">Equity Option</SelectItem>
+                              <SelectItem value="equity_option">
+                                Equity Option
+                              </SelectItem>
                               <SelectItem value="crypto">Crypto</SelectItem>
                               <SelectItem value="forex">Forex</SelectItem>
                               <SelectItem value="future">Future</SelectItem>
-                              <SelectItem value="future_option">Future Option</SelectItem>
+                              <SelectItem value="future_option">
+                                Future Option
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-foreground">Time In Force</Label>
+                          <Label className="text-foreground">
+                            Time In Force
+                          </Label>
                           <Select
                             value={customOrder.timeInForce}
                             onValueChange={(v) =>
-                              setCustomOrder((p) => ({ ...p, timeInForce: v as any }))
+                              setCustomOrder((p) => ({
+                                ...p,
+                                timeInForce: v as any,
+                              }))
                             }
                           >
                             <SelectTrigger className="bg-input border-border text-foreground w-full">
@@ -2357,61 +2478,79 @@ export function TradingPageComponent() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="day">Day</SelectItem>
-                              <SelectItem value="gtc">GTC (Good Till Cancel)</SelectItem>
-                              <SelectItem value="gtd">GTD (Good Till Date)</SelectItem>
-                              <SelectItem value="ioc">IOC (Immediate Or Cancel)</SelectItem>
-                              <SelectItem value="fok">FOK (Fill Or Kill)</SelectItem>
+                              <SelectItem value="gtc">
+                                GTC (Good Till Cancel)
+                              </SelectItem>
+                              <SelectItem value="gtd">
+                                GTD (Good Till Date)
+                              </SelectItem>
+                              <SelectItem value="ioc">
+                                IOC (Immediate Or Cancel)
+                              </SelectItem>
+                              <SelectItem value="fok">
+                                FOK (Fill Or Kill)
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        {(customOrder.orderType === 'limit' ||
-                          customOrder.orderType === 'stop_limit') && (
+                        {(customOrder.orderType === "limit" ||
+                          customOrder.orderType === "stop_limit") && (
                           <div className="space-y-1">
                             <Label className="text-foreground">Price</Label>
                             <Input
                               type="number"
                               step="0.01"
                               className="bg-input border-border text-foreground w-full"
-                              value={customOrder.price ?? ''}
+                              value={customOrder.price ?? ""}
                               onChange={(e) =>
                                 setCustomOrder((p) => ({
                                   ...p,
-                                  price: e.target.value ? Number(e.target.value) : undefined,
+                                  price: e.target.value
+                                    ? Number(e.target.value)
+                                    : undefined,
                                 }))
                               }
                               placeholder="0.00"
                             />
                           </div>
                         )}
-                        {(customOrder.orderType === 'stop' ||
-                          customOrder.orderType === 'stop_limit') && (
+                        {(customOrder.orderType === "stop" ||
+                          customOrder.orderType === "stop_limit") && (
                           <div className="space-y-1">
-                            <Label className="text-foreground">Stop Price</Label>
+                            <Label className="text-foreground">
+                              Stop Price
+                            </Label>
                             <Input
                               type="number"
                               step="0.01"
                               className="bg-input border-border text-foreground w-full"
-                              value={customOrder.stopPrice ?? ''}
+                              value={customOrder.stopPrice ?? ""}
                               onChange={(e) =>
                                 setCustomOrder((p) => ({
                                   ...p,
-                                  stopPrice: e.target.value ? Number(e.target.value) : undefined,
+                                  stopPrice: e.target.value
+                                    ? Number(e.target.value)
+                                    : undefined,
                                 }))
                               }
                               placeholder="0.00"
                             />
                           </div>
                         )}
-                        {customOrder.timeInForce === 'gtd' && (
+                        {customOrder.timeInForce === "gtd" && (
                           <div className="space-y-1">
-                            <Label className="text-foreground">Expire Time (ISO 8601)</Label>
+                            <Label className="text-foreground">
+                              Expire Time (ISO 8601)
+                            </Label>
                             <Input
                               type="datetime-local"
                               className="bg-input border-border text-foreground w-full"
                               value={
                                 customOrder.expireTime
-                                  ? new Date(customOrder.expireTime).toISOString().slice(0, 16)
-                                  : ''
+                                  ? new Date(customOrder.expireTime)
+                                      .toISOString()
+                                      .slice(0, 16)
+                                  : ""
                               }
                               onChange={(e) => {
                                 if (e.target.value) {
@@ -2421,13 +2560,16 @@ export function TradingPageComponent() {
                                     expireTime: date.toISOString(),
                                   }));
                                 } else {
-                                  setCustomOrder((p) => ({ ...p, expireTime: undefined }));
+                                  setCustomOrder((p) => ({
+                                    ...p,
+                                    expireTime: undefined,
+                                  }));
                                 }
                               }}
                             />
                           </div>
                         )}
-                        {customOrder.assetType === 'equity_option' && (
+                        {customOrder.assetType === "equity_option" && (
                           <>
                             <div className="space-y-1">
                               <Label className="text-foreground">
@@ -2447,7 +2589,9 @@ export function TradingPageComponent() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-foreground">Strike Price</Label>
+                              <Label className="text-foreground">
+                                Strike Price
+                              </Label>
                               <Input
                                 type="number"
                                 step="0.01"
@@ -2463,13 +2607,15 @@ export function TradingPageComponent() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-foreground">Option Type</Label>
+                              <Label className="text-foreground">
+                                Option Type
+                              </Label>
                               <Select
                                 value={customOptionFields.optionType}
                                 onValueChange={(v) =>
                                   setCustomOptionFields((p) => ({
                                     ...p,
-                                    optionType: v as 'call' | 'put',
+                                    optionType: v as "call" | "put",
                                   }))
                                 }
                               >
@@ -2483,13 +2629,15 @@ export function TradingPageComponent() {
                               </Select>
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-foreground">Position Effect</Label>
+                              <Label className="text-foreground">
+                                Position Effect
+                              </Label>
                               <Select
                                 value={customOptionFields.positionEffect}
                                 onValueChange={(v) =>
                                   setCustomOptionFields((p) => ({
                                     ...p,
-                                    positionEffect: v as 'open' | 'close',
+                                    positionEffect: v as "open" | "close",
                                   }))
                                 }
                               >
@@ -2506,7 +2654,9 @@ export function TradingPageComponent() {
                         )}
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-foreground">Broker-Specific Extras (JSON)</Label>
+                        <Label className="text-foreground">
+                          Broker-Specific Extras (JSON)
+                        </Label>
                         <Textarea
                           className="bg-input border-border text-foreground min-h-24 font-mono text-xs"
                           value={customExtrasText}
@@ -2514,8 +2664,8 @@ export function TradingPageComponent() {
                           placeholder='{"extendedHours": false, "marketHours": "regular_hours"}'
                         />
                         <p className="text-xs text-muted-foreground">
-                          Optional broker-specific fields (e.g., extendedHours for Robinhood,
-                          accountSpec for NinjaTrader)
+                          Optional broker-specific fields (e.g., extendedHours
+                          for Robinhood, accountSpec for NinjaTrader)
                         </p>
                       </div>
 
@@ -2535,7 +2685,8 @@ export function TradingPageComponent() {
                       {orderPayloadPreview === null && customExtrasText && (
                         <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-2">
                           <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                            Invalid JSON in extras field. Please fix the JSON syntax.
+                            Invalid JSON in extras field. Please fix the JSON
+                            syntax.
                           </p>
                         </div>
                       )}
@@ -2572,7 +2723,9 @@ export function TradingPageComponent() {
                             {JSON.stringify(customResponse, null, 2)}
                           </pre>
                         ) : (
-                          <div className="text-muted-foreground">No response yet.</div>
+                          <div className="text-muted-foreground">
+                            No response yet.
+                          </div>
                         )}
                       </div>
                     </div>
@@ -2585,8 +2738,13 @@ export function TradingPageComponent() {
                 {/* Broker and Account Selection (required by SDK cancelOrder) */}
                 <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-foreground text-xs sm:text-sm">Broker</Label>
-                    <Select value={selectedBroker} onValueChange={setSelectedBroker}>
+                    <Label className="text-foreground text-xs sm:text-sm">
+                      Broker
+                    </Label>
+                    <Select
+                      value={selectedBroker}
+                      onValueChange={setSelectedBroker}
+                    >
                       <SelectTrigger className="bg-input border-border text-foreground">
                         <SelectValue placeholder="Select a broker" />
                       </SelectTrigger>
@@ -2607,7 +2765,8 @@ export function TradingPageComponent() {
                         )}
                         {!isSandboxMode && !isBrokerConnected && (
                           <span className="text-xs text-yellow-600 dark:text-yellow-400">
-                            Not connected. Connect it first to cancel orders in live mode.
+                            Not connected. Connect it first to cancel orders in
+                            live mode.
                           </span>
                         )}
                       </div>
@@ -2615,16 +2774,21 @@ export function TradingPageComponent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-foreground text-xs sm:text-sm">Account</Label>
-                    <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                    <Label className="text-foreground text-xs sm:text-sm">
+                      Account
+                    </Label>
+                    <Select
+                      value={selectedAccountId}
+                      onValueChange={setSelectedAccountId}
+                    >
                       <SelectTrigger className="bg-input border-border text-foreground">
                         <SelectValue
                           placeholder={
                             availableAccounts.length
-                              ? 'Select an account'
+                              ? "Select an account"
                               : selectedBroker
-                                ? 'No accounts available'
-                                : 'Select broker first'
+                                ? "No accounts available"
+                                : "Select broker first"
                           }
                         />
                       </SelectTrigger>
@@ -2633,19 +2797,27 @@ export function TradingPageComponent() {
                           const uniqueKey =
                             a.id ||
                             a.accountId ||
-                            a.broker_provided_account_id ||
+                            a.accountNumber ||
+                            a.account_number ||
+                            a.accountId ||
                             a.account_id ||
-                            '';
+                            "";
                           const accountId = String(
-                            a.broker_provided_account_id || a.account_id || a.accountId || ''
+                            a.accountNumber ||
+                            a.account_number ||
+                            a.accountId ||
+                              a.accountId ||
+                              "",
                           );
                           const accountName =
                             a.account_name ||
                             a.accountName ||
-                            a.broker_provided_account_id ||
+                            a.accountNumber ||
+                            a.account_number ||
+                            a.accountId ||
                             a.account_id ||
                             a.accountId ||
-                            'Unknown Account';
+                            "Unknown Account";
                           return (
                             <SelectItem key={uniqueKey} value={accountId}>
                               {accountName}
@@ -2668,8 +2840,8 @@ export function TradingPageComponent() {
                         placeholder="Enter order ID to cancel"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Enter the broker-provided order ID to cancel. The SDK requires broker,
-                        account, and order ID.
+                        Enter the broker-provided order ID to cancel. The SDK
+                        requires broker, account, and order ID.
                       </p>
                     </div>
 
@@ -2683,31 +2855,41 @@ export function TradingPageComponent() {
                           <div className="space-y-2">
                             <div>
                               <span className="text-xs font-semibold text-foreground">
-                                Method:{' '}
+                                Method:{" "}
                               </span>
                               <span className="text-xs text-foreground font-mono">
                                 {cancelOrderUrlPreview.method}
                               </span>
                             </div>
                             <div>
-                              <span className="text-xs font-semibold text-foreground">URL: </span>
+                              <span className="text-xs font-semibold text-foreground">
+                                URL:{" "}
+                              </span>
                               <span className="text-xs text-foreground font-mono break-all">
                                 {cancelOrderUrlPreview.url}
                               </span>
                             </div>
                             <div>
-                              <span className="text-xs font-semibold text-foreground">Body: </span>
+                              <span className="text-xs font-semibold text-foreground">
+                                Body:{" "}
+                              </span>
                               <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-xs text-muted-foreground">
                                 {cancelOrderUrlPreview.body != null
-                                  ? JSON.stringify(cancelOrderUrlPreview.body, null, 2)
-                                  : 'null'}
+                                  ? JSON.stringify(
+                                      cancelOrderUrlPreview.body,
+                                      null,
+                                      2,
+                                    )
+                                  : "null"}
                               </pre>
                             </div>
                             <div>
                               <span className="text-xs font-semibold text-foreground">
-                                Query Params:{' '}
+                                Query Params:{" "}
                               </span>
-                              <span className="text-xs text-muted-foreground font-mono">null</span>
+                              <span className="text-xs text-muted-foreground font-mono">
+                                null
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -2747,7 +2929,9 @@ export function TradingPageComponent() {
                           {JSON.stringify(cancelResponse, null, 2)}
                         </pre>
                       ) : (
-                        <div className="text-muted-foreground">No response yet.</div>
+                        <div className="text-muted-foreground">
+                          No response yet.
+                        </div>
                       )}
                     </div>
                   </div>
@@ -2760,7 +2944,10 @@ export function TradingPageComponent() {
                 <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-foreground">Broker</Label>
-                    <Select value={selectedBroker} onValueChange={setSelectedBroker}>
+                    <Select
+                      value={selectedBroker}
+                      onValueChange={setSelectedBroker}
+                    >
                       <SelectTrigger className="bg-input border-border text-foreground">
                         <SelectValue placeholder="Select a broker" />
                       </SelectTrigger>
@@ -2781,7 +2968,8 @@ export function TradingPageComponent() {
                         )}
                         {!isSandboxMode && !isBrokerConnected && (
                           <span className="text-xs text-yellow-600 dark:text-yellow-400">
-                            Not connected. Connect it first to modify orders in live mode.
+                            Not connected. Connect it first to modify orders in
+                            live mode.
                           </span>
                         )}
                       </div>
@@ -2790,15 +2978,18 @@ export function TradingPageComponent() {
 
                   <div className="space-y-2">
                     <Label className="text-foreground">Account</Label>
-                    <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                    <Select
+                      value={selectedAccountId}
+                      onValueChange={setSelectedAccountId}
+                    >
                       <SelectTrigger className="bg-input border-border text-foreground">
                         <SelectValue
                           placeholder={
                             availableAccounts.length
-                              ? 'Select an account'
+                              ? "Select an account"
                               : selectedBroker
-                                ? 'No accounts available'
-                                : 'Select broker first'
+                                ? "No accounts available"
+                                : "Select broker first"
                           }
                         />
                       </SelectTrigger>
@@ -2808,19 +2999,27 @@ export function TradingPageComponent() {
                           const uniqueKey =
                             a.id ||
                             a.accountId ||
-                            a.broker_provided_account_id ||
+                            a.accountNumber ||
+                            a.account_number ||
+                            a.accountId ||
                             a.account_id ||
-                            '';
+                            "";
                           const accountId = String(
-                            a.broker_provided_account_id || a.account_id || a.accountId || ''
+                            a.accountNumber ||
+                            a.account_number ||
+                            a.accountId ||
+                              a.accountId ||
+                              "",
                           );
                           const accountName =
                             a.account_name ||
                             a.accountName ||
-                            a.broker_provided_account_id ||
+                            a.accountNumber ||
+                            a.account_number ||
+                            a.accountId ||
                             a.account_id ||
                             a.accountId ||
-                            'Unknown Account';
+                            "Unknown Account";
                           return (
                             <SelectItem key={uniqueKey} value={accountId}>
                               {accountName}
@@ -2831,21 +3030,26 @@ export function TradingPageComponent() {
                     </Select>
                     {selectedAccount && (
                       <p className="text-xs text-muted-foreground">
-                        Account ID:{' '}
-                        {selectedAccount.broker_provided_account_id || selectedAccount.account_id}
+                        Account ID:{" "}
+                        {selectedAccount.accountNumber ||
+                          selectedAccount.account_number ||
+                          selectedAccount.accountId ||
+                          selectedAccount.account_id}
                       </p>
                     )}
                   </div>
                 </div>
 
-                {selectedBroker && availableAccounts.length === 0 && !isSandboxMode && (
-                  <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-3">
-                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                      No accounts available for this broker. Make sure the broker is connected and
-                      has active accounts.
-                    </p>
-                  </div>
-                )}
+                {selectedBroker &&
+                  availableAccounts.length === 0 &&
+                  !isSandboxMode && (
+                    <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-3">
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                        No accounts available for this broker. Make sure the
+                        broker is connected and has active accounts.
+                      </p>
+                    </div>
+                  )}
 
                 {selectedBroker && availableAccounts.length > 0 && (
                   <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
@@ -2859,27 +3063,33 @@ export function TradingPageComponent() {
                           placeholder="Enter order ID to modify"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Enter the broker-provided order ID that you want to modify
+                          Enter the broker-provided order ID that you want to
+                          modify
                         </p>
                       </div>
 
                       <p className="text-xs text-muted-foreground">
-                        Set only the fields you want to change. The API sends a delta; the rest is
-                        filled from the existing order.
+                        Set only the fields you want to change. The API sends a
+                        delta; the rest is filled from the existing order.
                       </p>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <Label className="text-foreground">Quantity (optional)</Label>
+                          <Label className="text-foreground">
+                            Quantity (optional)
+                          </Label>
                           <Input
                             type="number"
                             className="bg-input border-border text-foreground w-full"
-                            value={modifyOrder.orderQty ?? ''}
+                            value={modifyOrder.orderQty ?? ""}
                             onChange={(e) => {
                               const raw = e.target.value;
-                              const num = raw === '' ? undefined : Number(raw);
+                              const num = raw === "" ? undefined : Number(raw);
                               setModifyOrder((p) => ({
                                 ...p,
-                                orderQty: num !== undefined && Number.isFinite(num) ? num : undefined,
+                                orderQty:
+                                  num !== undefined && Number.isFinite(num)
+                                    ? num
+                                    : undefined,
                               }));
                             }}
                             min={1}
@@ -2887,13 +3097,16 @@ export function TradingPageComponent() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-foreground">Order Type (optional)</Label>
+                          <Label className="text-foreground">
+                            Order Type (optional)
+                          </Label>
                           <Select
                             value={modifyOrder.orderType ?? MODIFY_NONE}
                             onValueChange={(v) =>
                               setModifyOrder((p) => ({
                                 ...p,
-                                orderType: v === MODIFY_NONE ? undefined : (v as any),
+                                orderType:
+                                  v === MODIFY_NONE ? undefined : (v as any),
                               }))
                             }
                           >
@@ -2901,22 +3114,29 @@ export function TradingPageComponent() {
                               <SelectValue placeholder="Don't change" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={MODIFY_NONE}>Don't change</SelectItem>
+                              <SelectItem value={MODIFY_NONE}>
+                                Don't change
+                              </SelectItem>
                               <SelectItem value="market">Market</SelectItem>
                               <SelectItem value="limit">Limit</SelectItem>
                               <SelectItem value="stop">Stop</SelectItem>
-                              <SelectItem value="stop_limit">Stop Limit</SelectItem>
+                              <SelectItem value="stop_limit">
+                                Stop Limit
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-foreground">Asset Type (optional)</Label>
+                          <Label className="text-foreground">
+                            Asset Type (optional)
+                          </Label>
                           <Select
                             value={modifyOrder.assetType ?? MODIFY_NONE}
                             onValueChange={(v) =>
                               setModifyOrder((p) => ({
                                 ...p,
-                                assetType: v === MODIFY_NONE ? undefined : (v as any),
+                                assetType:
+                                  v === MODIFY_NONE ? undefined : (v as any),
                               }))
                             }
                           >
@@ -2924,24 +3144,33 @@ export function TradingPageComponent() {
                               <SelectValue placeholder="Don't change" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={MODIFY_NONE}>Don't change</SelectItem>
+                              <SelectItem value={MODIFY_NONE}>
+                                Don't change
+                              </SelectItem>
                               <SelectItem value="equity">Equity</SelectItem>
-                              <SelectItem value="equity_option">Equity Option</SelectItem>
+                              <SelectItem value="equity_option">
+                                Equity Option
+                              </SelectItem>
                               <SelectItem value="crypto">Crypto</SelectItem>
                               <SelectItem value="forex">Forex</SelectItem>
                               <SelectItem value="future">Future</SelectItem>
-                              <SelectItem value="future_option">Future Option</SelectItem>
+                              <SelectItem value="future_option">
+                                Future Option
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-foreground">Time In Force (optional)</Label>
+                          <Label className="text-foreground">
+                            Time In Force (optional)
+                          </Label>
                           <Select
                             value={modifyOrder.timeInForce ?? MODIFY_NONE}
                             onValueChange={(v) =>
                               setModifyOrder((p) => ({
                                 ...p,
-                                timeInForce: v === MODIFY_NONE ? undefined : (v as any),
+                                timeInForce:
+                                  v === MODIFY_NONE ? undefined : (v as any),
                               }))
                             }
                           >
@@ -2949,57 +3178,79 @@ export function TradingPageComponent() {
                               <SelectValue placeholder="Don't change" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={MODIFY_NONE}>Don't change</SelectItem>
+                              <SelectItem value={MODIFY_NONE}>
+                                Don't change
+                              </SelectItem>
                               <SelectItem value="day">Day</SelectItem>
-                              <SelectItem value="gtc">GTC (Good Till Cancel)</SelectItem>
-                              <SelectItem value="gtd">GTD (Good Till Date)</SelectItem>
-                              <SelectItem value="ioc">IOC (Immediate Or Cancel)</SelectItem>
-                              <SelectItem value="fok">FOK (Fill Or Kill)</SelectItem>
+                              <SelectItem value="gtc">
+                                GTC (Good Till Cancel)
+                              </SelectItem>
+                              <SelectItem value="gtd">
+                                GTD (Good Till Date)
+                              </SelectItem>
+                              <SelectItem value="ioc">
+                                IOC (Immediate Or Cancel)
+                              </SelectItem>
+                              <SelectItem value="fok">
+                                FOK (Fill Or Kill)
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-foreground">Price (optional)</Label>
+                          <Label className="text-foreground">
+                            Price (optional)
+                          </Label>
                           <Input
                             type="number"
                             step="0.01"
                             className="bg-input border-border text-foreground w-full"
-                            value={modifyOrder.price ?? ''}
+                            value={modifyOrder.price ?? ""}
                             onChange={(e) =>
                               setModifyOrder((p) => ({
                                 ...p,
-                                price: e.target.value ? Number(e.target.value) : undefined,
+                                price: e.target.value
+                                  ? Number(e.target.value)
+                                  : undefined,
                               }))
                             }
                             placeholder="Leave empty to keep current"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-foreground">Stop Price (optional)</Label>
+                          <Label className="text-foreground">
+                            Stop Price (optional)
+                          </Label>
                           <Input
                             type="number"
                             step="0.01"
                             className="bg-input border-border text-foreground w-full"
-                            value={modifyOrder.stopPrice ?? ''}
+                            value={modifyOrder.stopPrice ?? ""}
                             onChange={(e) =>
                               setModifyOrder((p) => ({
                                 ...p,
-                                stopPrice: e.target.value ? Number(e.target.value) : undefined,
+                                stopPrice: e.target.value
+                                  ? Number(e.target.value)
+                                  : undefined,
                               }))
                             }
                             placeholder="Leave empty to keep current"
                           />
                         </div>
-                        {modifyOrder.timeInForce === 'gtd' && (
+                        {modifyOrder.timeInForce === "gtd" && (
                           <div className="space-y-1">
-                            <Label className="text-foreground">Expire Time (ISO 8601)</Label>
+                            <Label className="text-foreground">
+                              Expire Time (ISO 8601)
+                            </Label>
                             <Input
                               type="datetime-local"
                               className="bg-input border-border text-foreground w-full"
                               value={
                                 modifyOrder.expireTime
-                                  ? new Date(modifyOrder.expireTime).toISOString().slice(0, 16)
-                                  : ''
+                                  ? new Date(modifyOrder.expireTime)
+                                      .toISOString()
+                                      .slice(0, 16)
+                                  : ""
                               }
                               onChange={(e) => {
                                 if (e.target.value) {
@@ -3009,13 +3260,16 @@ export function TradingPageComponent() {
                                     expireTime: date.toISOString(),
                                   }));
                                 } else {
-                                  setModifyOrder((p) => ({ ...p, expireTime: undefined }));
+                                  setModifyOrder((p) => ({
+                                    ...p,
+                                    expireTime: undefined,
+                                  }));
                                 }
                               }}
                             />
                           </div>
                         )}
-                        {modifyOrder.assetType === 'equity_option' && (
+                        {modifyOrder.assetType === "equity_option" && (
                           <>
                             <div className="space-y-1">
                               <Label className="text-foreground">
@@ -3035,7 +3289,9 @@ export function TradingPageComponent() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-foreground">Strike Price</Label>
+                              <Label className="text-foreground">
+                                Strike Price
+                              </Label>
                               <Input
                                 type="number"
                                 step="0.01"
@@ -3051,13 +3307,15 @@ export function TradingPageComponent() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-foreground">Option Type</Label>
+                              <Label className="text-foreground">
+                                Option Type
+                              </Label>
                               <Select
                                 value={modifyOptionFields.optionType}
                                 onValueChange={(v) =>
                                   setModifyOptionFields((p) => ({
                                     ...p,
-                                    optionType: v as 'call' | 'put',
+                                    optionType: v as "call" | "put",
                                   }))
                                 }
                               >
@@ -3071,13 +3329,15 @@ export function TradingPageComponent() {
                               </Select>
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-foreground">Position Effect</Label>
+                              <Label className="text-foreground">
+                                Position Effect
+                              </Label>
                               <Select
                                 value={modifyOptionFields.positionEffect}
                                 onValueChange={(v) =>
                                   setModifyOptionFields((p) => ({
                                     ...p,
-                                    positionEffect: v as 'open' | 'close',
+                                    positionEffect: v as "open" | "close",
                                   }))
                                 }
                               >
@@ -3094,7 +3354,9 @@ export function TradingPageComponent() {
                         )}
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-foreground">Broker-Specific Extras (JSON)</Label>
+                        <Label className="text-foreground">
+                          Broker-Specific Extras (JSON)
+                        </Label>
                         <Textarea
                           className="bg-input border-border text-foreground min-h-24 font-mono text-xs"
                           value={modifyExtrasText}
@@ -3102,8 +3364,8 @@ export function TradingPageComponent() {
                           placeholder='{"extendedHours": false, "marketHours": "regular_hours"}'
                         />
                         <p className="text-xs text-muted-foreground">
-                          Optional broker-specific fields (e.g., extendedHours for Robinhood,
-                          accountSpec for NinjaTrader)
+                          Optional broker-specific fields (e.g., extendedHours
+                          for Robinhood, accountSpec for NinjaTrader)
                         </p>
                       </div>
 
@@ -3115,18 +3377,24 @@ export function TradingPageComponent() {
                           </summary>
                           <div className="border-t border-border/60 p-3">
                             <pre className="whitespace-pre-wrap break-words text-xs text-foreground font-mono overflow-auto max-h-64">
-                              {JSON.stringify(modifyOrderPayloadPreview, null, 2)}
+                              {JSON.stringify(
+                                modifyOrderPayloadPreview,
+                                null,
+                                2,
+                              )}
                             </pre>
                           </div>
                         </details>
                       )}
-                      {modifyOrderPayloadPreview === null && modifyExtrasText && (
-                        <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-2">
-                          <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                            Invalid JSON in extras field. Please fix the JSON syntax.
-                          </p>
-                        </div>
-                      )}
+                      {modifyOrderPayloadPreview === null &&
+                        modifyExtrasText && (
+                          <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-2">
+                            <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                              Invalid JSON in extras field. Please fix the JSON
+                              syntax.
+                            </p>
+                          </div>
+                        )}
 
                       <div className="flex gap-2 pt-1">
                         <Button
@@ -3160,7 +3428,9 @@ export function TradingPageComponent() {
                             {JSON.stringify(modifyResponse, null, 2)}
                           </pre>
                         ) : (
-                          <div className="text-muted-foreground">No response yet.</div>
+                          <div className="text-muted-foreground">
+                            No response yet.
+                          </div>
                         )}
                       </div>
                     </div>
@@ -3173,256 +3443,299 @@ export function TradingPageComponent() {
       </Card>
 
       {/* Order Presets - only show on Place Order tab */}
-      {activeTab === 'place' && (
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <Button
-            variant="ghost"
-            className="w-full justify-between p-0 h-auto hover:bg-transparent"
-            onClick={() => setIsOrderPresetsOpen(!isOrderPresetsOpen)}
-          >
-            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div className="text-left min-w-0 flex-1">
-                <CardTitle className="text-foreground text-base sm:text-lg">
-                  Order Presets
-                </CardTitle>
-                <CardDescription className="text-muted-foreground text-xs sm:text-sm break-words">
-                  Quickly send common broker-specific orders. Select a broker above, pick a preset,
-                  inspect and edit the JSON payload, then place the order.
-                </CardDescription>
+      {activeTab === "place" && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <Button
+              variant="ghost"
+              className="w-full justify-between p-0 h-auto hover:bg-transparent"
+              onClick={() => setIsOrderPresetsOpen(!isOrderPresetsOpen)}
+            >
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="text-left min-w-0 flex-1">
+                  <CardTitle className="text-foreground text-base sm:text-lg">
+                    Order Presets
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground text-xs sm:text-sm break-words">
+                    Quickly send common broker-specific orders. Select a broker
+                    above, pick a preset, inspect and edit the JSON payload,
+                    then place the order.
+                  </CardDescription>
+                </div>
+                <div className="flex-shrink-0 mt-0.5 self-start">
+                  {isOrderPresetsOpen ? (
+                    <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                  )}
+                </div>
               </div>
-              <div className="flex-shrink-0 mt-0.5 self-start">
-                {isOrderPresetsOpen ? (
-                  <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-                )}
-              </div>
-            </div>
-          </Button>
-        </CardHeader>
-        {isOrderPresetsOpen && (
-          <CardContent className="space-y-4">
-            {!selectedBroker && (
-              <p className="text-sm text-muted-foreground">
-                Select a broker in the Orders Playground to view presets.
-              </p>
-            )}
+            </Button>
+          </CardHeader>
+          {isOrderPresetsOpen && (
+            <CardContent className="space-y-4">
+              {!selectedBroker && (
+                <p className="text-sm text-muted-foreground">
+                  Select a broker in the Orders Playground to view presets.
+                </p>
+              )}
 
-            {selectedBroker && (
-              <>
-                {!(BROKER_ORDER_PRESETS[selectedBroker]?.length ?? 0) && (
-                  <p className="text-sm text-muted-foreground">
-                    No presets available yet for this broker.
-                  </p>
-                )}
+              {selectedBroker && (
+                <>
+                  {!(BROKER_ORDER_PRESETS[selectedBroker]?.length ?? 0) && (
+                    <p className="text-sm text-muted-foreground">
+                      No presets available yet for this broker.
+                    </p>
+                  )}
 
-                {(BROKER_ORDER_PRESETS[selectedBroker]?.length ?? 0) > 0 && (
-                  <>
-                    {/* Filters */}
-                    <div className="flex flex-col gap-3">
-                      <p className="text-xs sm:text-sm text-muted-foreground">
-                        Showing presets for broker{' '}
-                        <span className="font-medium text-foreground">{selectedBroker}</span>
-                      </p>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                        <div className="space-y-1 flex-1 sm:flex-initial">
-                          <Label className="text-xs text-muted-foreground">Asset Class</Label>
-                          <Select
-                            value={presetAssetFilter}
-                            onValueChange={(value) =>
-                              setPresetAssetFilter(value as 'all' | SupportedAssetType)
-                            }
-                          >
-                            <SelectTrigger className="bg-input border-border text-foreground h-8 w-full sm:w-40 text-xs sm:text-sm">
-                              <SelectValue placeholder="All Asset Classes" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All</SelectItem>
-                              <SelectItem value="equity">Equity</SelectItem>
-                              <SelectItem value="equity_option">Equity Option</SelectItem>
-                              <SelectItem value="crypto">Crypto</SelectItem>
-                              <SelectItem value="forex">Forex</SelectItem>
-                              <SelectItem value="future">Future</SelectItem>
-                              <SelectItem value="future_option">Future Option</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1 flex-1 sm:flex-initial">
-                          <Label className="text-xs text-muted-foreground">Order Type</Label>
-                          <Select
-                            value={presetOrderTypeFilter}
-                            onValueChange={(value) =>
-                              setPresetOrderTypeFilter(value as 'all' | SupportedOrderType)
-                            }
-                          >
-                            <SelectTrigger className="bg-input border-border text-foreground h-8 w-full sm:w-40 text-xs sm:text-sm">
-                              <SelectValue placeholder="All Order Types" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All</SelectItem>
-                              <SelectItem value="market">Market</SelectItem>
-                              <SelectItem value="limit">Limit</SelectItem>
-                              <SelectItem value="stop">Stop</SelectItem>
-                              <SelectItem value="stop_limit">Stop Limit</SelectItem>
-                              <SelectItem value="trailing_stop">Trailing Stop</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {presetAssetFilter === 'equity_option' && (
+                  {(BROKER_ORDER_PRESETS[selectedBroker]?.length ?? 0) > 0 && (
+                    <>
+                      {/* Filters */}
+                      <div className="flex flex-col gap-3">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Showing presets for broker{" "}
+                          <span className="font-medium text-foreground">
+                            {selectedBroker}
+                          </span>
+                        </p>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                           <div className="space-y-1 flex-1 sm:flex-initial">
-                            <Label className="text-xs text-muted-foreground">Expiration Date</Label>
-                            <Input
-                              type="date"
-                              className="bg-input border-border text-foreground h-8 w-full sm:w-40 text-xs sm:text-sm"
-                              value={equityOptionExpirationDate}
-                              onChange={(e) => setEquityOptionExpirationDate(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Sets expiration date for all equity option presets
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Presets list */}
-                    <div className="space-y-3">
-                      {(BROKER_ORDER_PRESETS[selectedBroker] ?? [])
-                        .filter((preset) => {
-                          if (
-                            presetAssetFilter !== 'all' &&
-                            preset.assetType !== presetAssetFilter
-                          ) {
-                            return false;
-                          }
-                          if (
-                            presetOrderTypeFilter !== 'all' &&
-                            preset.orderType !== presetOrderTypeFilter
-                          ) {
-                            return false;
-                          }
-                          return true;
-                        })
-                        .map((preset) => {
-                          const isExpanded = expandedPresetId === preset.id;
-                          const payloadText = presetPayloadTextById[preset.id] ?? '';
-
-                          return (
-                            <div
-                              key={preset.id}
-                              className="space-y-2 rounded-md border border-border/60 bg-muted/5 p-3"
+                            <Label className="text-xs text-muted-foreground">
+                              Asset Class
+                            </Label>
+                            <Select
+                              value={presetAssetFilter}
+                              onValueChange={(value) =>
+                                setPresetAssetFilter(
+                                  value as "all" | SupportedAssetType,
+                                )
+                              }
                             >
-                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                <div className="space-y-1 min-w-0 flex-1">
-                                  <p className="text-sm font-medium text-foreground break-words">
-                                    {preset.label}
-                                  </p>
-                                  <button
-                                    type="button"
-                                    className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-                                    onClick={() =>
-                                      setExpandedPresetId((previous) =>
-                                        previous === preset.id ? null : preset.id
-                                      )
-                                    }
-                                  >
-                                    {isExpanded ? 'Hide payload' : 'Show and edit payload JSON'}
-                                  </button>
-                                  <p className="text-xs text-muted-foreground break-words">
-                                    {preset.description}
-                                  </p>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  className="h-8 px-3 text-xs w-full sm:w-auto flex-shrink-0"
-                                  onClick={() => placePresetOrder(preset)}
-                                  disabled={
-                                    !selectedBroker ||
-                                    !selectedAccountId ||
-                                    (!isSandboxMode && !isBrokerConnected) ||
-                                    placingPresetId === preset.id
-                                  }
-                                >
-                                  {placingPresetId === preset.id ? (
-                                    <>
-                                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                      Placing...
-                                    </>
-                                  ) : (
-                                    <>Place Preset</>
-                                  )}
-                                </Button>
-                              </div>
-
-                              {isExpanded && (
-                                <div className="space-y-1">
-                                  <Textarea
-                                    className="bg-input border-border text-foreground min-h-24 font-mono text-xs"
-                                    value={payloadText}
-                                    onChange={(event) =>
-                                      setPresetPayloadTextById((previous) => ({
-                                        ...previous,
-                                        [preset.id]: event.target.value,
-                                      }))
-                                    }
-                                  />
-                                  <p className="text-xs text-muted-foreground">
-                                    Payload must match the{' '}
-                                    <span className="font-medium">
-                                      order_place_query_params_request
-                                    </span>{' '}
-                                    structure for the selected broker. Broker and accountNumber are
-                                    automatically aligned with your current selection when placing.
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Response Section */}
-                              {presetResponseById[preset.id] && (
-                                <div className="space-y-2 border-t border-border/60 pt-3">
-                                  <button
-                                    type="button"
-                                    className="flex items-center gap-2 text-xs text-foreground font-medium hover:text-foreground/80 transition-colors"
-                                    onClick={() =>
-                                      setExpandedResponsePresetIds((previous) => {
-                                        const next = new Set(previous);
-                                        if (next.has(preset.id)) {
-                                          next.delete(preset.id);
-                                        } else {
-                                          next.add(preset.id);
-                                        }
-                                        return next;
-                                      })
-                                    }
-                                  >
-                                    <span>Response</span>
-                                    {expandedResponsePresetIds.has(preset.id) ? (
-                                      <ChevronUp className="h-3 w-3" />
-                                    ) : (
-                                      <ChevronDown className="h-3 w-3" />
-                                    )}
-                                  </button>
-                                  {expandedResponsePresetIds.has(preset.id) && (
-                                    <div className="rounded-md border border-border/60 bg-muted/10 p-3 max-h-64 overflow-auto">
-                                      <pre className="whitespace-pre-wrap break-words text-xs text-foreground font-mono">
-                                        {JSON.stringify(presetResponseById[preset.id], null, 2)}
-                                      </pre>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                              <SelectTrigger className="bg-input border-border text-foreground h-8 w-full sm:w-40 text-xs sm:text-sm">
+                                <SelectValue placeholder="All Asset Classes" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All</SelectItem>
+                                <SelectItem value="equity">Equity</SelectItem>
+                                <SelectItem value="equity_option">
+                                  Equity Option
+                                </SelectItem>
+                                <SelectItem value="crypto">Crypto</SelectItem>
+                                <SelectItem value="forex">Forex</SelectItem>
+                                <SelectItem value="future">Future</SelectItem>
+                                <SelectItem value="future_option">
+                                  Future Option
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1 flex-1 sm:flex-initial">
+                            <Label className="text-xs text-muted-foreground">
+                              Order Type
+                            </Label>
+                            <Select
+                              value={presetOrderTypeFilter}
+                              onValueChange={(value) =>
+                                setPresetOrderTypeFilter(
+                                  value as "all" | SupportedOrderType,
+                                )
+                              }
+                            >
+                              <SelectTrigger className="bg-input border-border text-foreground h-8 w-full sm:w-40 text-xs sm:text-sm">
+                                <SelectValue placeholder="All Order Types" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All</SelectItem>
+                                <SelectItem value="market">Market</SelectItem>
+                                <SelectItem value="limit">Limit</SelectItem>
+                                <SelectItem value="stop">Stop</SelectItem>
+                                <SelectItem value="stop_limit">
+                                  Stop Limit
+                                </SelectItem>
+                                <SelectItem value="trailing_stop">
+                                  Trailing Stop
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {presetAssetFilter === "equity_option" && (
+                            <div className="space-y-1 flex-1 sm:flex-initial">
+                              <Label className="text-xs text-muted-foreground">
+                                Expiration Date
+                              </Label>
+                              <Input
+                                type="date"
+                                className="bg-input border-border text-foreground h-8 w-full sm:w-40 text-xs sm:text-sm"
+                                value={equityOptionExpirationDate}
+                                onChange={(e) =>
+                                  setEquityOptionExpirationDate(e.target.value)
+                                }
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Sets expiration date for all equity option
+                                presets
+                              </p>
                             </div>
-                          );
-                        })}
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-          </CardContent>
-        )}
-      </Card>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Presets list */}
+                      <div className="space-y-3">
+                        {(BROKER_ORDER_PRESETS[selectedBroker] ?? [])
+                          .filter((preset) => {
+                            if (
+                              presetAssetFilter !== "all" &&
+                              preset.assetType !== presetAssetFilter
+                            ) {
+                              return false;
+                            }
+                            if (
+                              presetOrderTypeFilter !== "all" &&
+                              preset.orderType !== presetOrderTypeFilter
+                            ) {
+                              return false;
+                            }
+                            return true;
+                          })
+                          .map((preset) => {
+                            const isExpanded = expandedPresetId === preset.id;
+                            const payloadText =
+                              presetPayloadTextById[preset.id] ?? "";
+
+                            return (
+                              <div
+                                key={preset.id}
+                                className="space-y-2 rounded-md border border-border/60 bg-muted/5 p-3"
+                              >
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                  <div className="space-y-1 min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-foreground break-words">
+                                      {preset.label}
+                                    </p>
+                                    <button
+                                      type="button"
+                                      className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                                      onClick={() =>
+                                        setExpandedPresetId((previous) =>
+                                          previous === preset.id
+                                            ? null
+                                            : preset.id,
+                                        )
+                                      }
+                                    >
+                                      {isExpanded
+                                        ? "Hide payload"
+                                        : "Show and edit payload JSON"}
+                                    </button>
+                                    <p className="text-xs text-muted-foreground break-words">
+                                      {preset.description}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-3 text-xs w-full sm:w-auto flex-shrink-0"
+                                    onClick={() => placePresetOrder(preset)}
+                                    disabled={
+                                      !selectedBroker ||
+                                      !selectedAccountId ||
+                                      (!isSandboxMode && !isBrokerConnected) ||
+                                      placingPresetId === preset.id
+                                    }
+                                  >
+                                    {placingPresetId === preset.id ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                        Placing...
+                                      </>
+                                    ) : (
+                                      <>Place Preset</>
+                                    )}
+                                  </Button>
+                                </div>
+
+                                {isExpanded && (
+                                  <div className="space-y-1">
+                                    <Textarea
+                                      className="bg-input border-border text-foreground min-h-24 font-mono text-xs"
+                                      value={payloadText}
+                                      onChange={(event) =>
+                                        setPresetPayloadTextById(
+                                          (previous) => ({
+                                            ...previous,
+                                            [preset.id]: event.target.value,
+                                          }),
+                                        )
+                                      }
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                      Payload must match the{" "}
+                                      <span className="font-medium">
+                                        order_place_query_params_request
+                                      </span>{" "}
+                                      structure for the selected broker. Broker
+                                      and accountNumber are automatically
+                                      aligned with your current selection when
+                                      placing.
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Response Section */}
+                                {presetResponseById[preset.id] && (
+                                  <div className="space-y-2 border-t border-border/60 pt-3">
+                                    <button
+                                      type="button"
+                                      className="flex items-center gap-2 text-xs text-foreground font-medium hover:text-foreground/80 transition-colors"
+                                      onClick={() =>
+                                        setExpandedResponsePresetIds(
+                                          (previous) => {
+                                            const next = new Set(previous);
+                                            if (next.has(preset.id)) {
+                                              next.delete(preset.id);
+                                            } else {
+                                              next.add(preset.id);
+                                            }
+                                            return next;
+                                          },
+                                        )
+                                      }
+                                    >
+                                      <span>Response</span>
+                                      {expandedResponsePresetIds.has(
+                                        preset.id,
+                                      ) ? (
+                                        <ChevronUp className="h-3 w-3" />
+                                      ) : (
+                                        <ChevronDown className="h-3 w-3" />
+                                      )}
+                                    </button>
+                                    {expandedResponsePresetIds.has(
+                                      preset.id,
+                                    ) && (
+                                      <div className="rounded-md border border-border/60 bg-muted/10 p-3 max-h-64 overflow-auto">
+                                        <pre className="whitespace-pre-wrap break-words text-xs text-foreground font-mono">
+                                          {JSON.stringify(
+                                            presetResponseById[preset.id],
+                                            null,
+                                            2,
+                                          )}
+                                        </pre>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </CardContent>
+          )}
+        </Card>
       )}
     </div>
   );

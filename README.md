@@ -32,6 +32,23 @@ Identity terms used by the demos:
 - **Server Node demo (`server-node/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev`, `FINATIC_ENVIRONMENT=sandbox` or `live`, and `FINATIC_CONNECT_URL` when testing a non-default Connect host.
 - **Server Python demo (`server-python/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev`, `FINATIC_ENVIRONMENT=sandbox` or `live`, and `FINATIC_CONNECT_URL` when testing a non-default Connect host.
 
+## SDK versions
+
+Demo apps target **Finatic SDK v1.0.0** (`@finatic/client`, `@finatic/server-node`,
+`finatic-server-python`). Published installs use npm/PyPI `^1.0.0`.
+
+When developing inside the Finatic orchestrator monorepo, install local SDK builds:
+
+```bash
+# client/demo-app or client/simple-demo-app
+npm install @finatic/client@file:../../../SDKs/Client/FinaticClientSDK
+
+# server-node/demo-app
+npm install @finatic/server-node@file:../../../SDKs/Server/FinaticServerSDK-Node
+```
+
+CI and external clones resolve `^1.0.0` from npm/PyPI once packages are published.
+
 ## Quick Start
 
 - `client/demo-app`
@@ -46,3 +63,4 @@ For broader end-to-end validation flows, use `../testing/FinaticTester`.
 
 - SDK docs: [https://finatic.dev/docs](https://finatic.dev/docs)
 - API reference: [https://finatic.dev/docs/api-reference](https://finatic.dev/docs/api-reference)
+- Sandbox 12-provider walkthrough: [`docs/sandbox-12-provider-walkthrough.md`](docs/sandbox-12-provider-walkthrough.md)

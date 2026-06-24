@@ -293,20 +293,14 @@ export function MethodHarness({
       "getUserId",
       "getSessionId",
       "getCompanyId",
-      "disconnectCompanyFromBroker",
-      "getCompany",
-      "getBrokerList",
-      "getBrokerConnections",
-      "getAccounts",
-      "getAllAccounts",
-      "getBalances",
-      "getAllBalances",
-      "getOrders",
-      "getAllOrders",
-      "getTransactions",
-      "getAllTransactions",
-      "getPositions",
-      "getAllPositions",
+      "listPortalInstitutions",
+      "listAccountGrants",
+      "revokeAccountGrant",
+      "listAccounts",
+      "listBalances",
+      "listOrders",
+      "listTransactions",
+      "listPositions",
     ],
     [],
   );
@@ -400,18 +394,19 @@ export function MethodHarness({
         // Map adapter method names to FinaticConnect method names
         const methodMap: Record<string, string> = {
           isAuthenticated: "isAuthed",
-          getBrokerList: "getBrokers",
-          getBrokerConnections: "getBrokerConnections",
-          disconnectCompany: "disconnectCompanyFromBroker",
-          getActiveAccounts: "getAllAccounts", // Will filter after
+          getActiveAccounts: "getAllAccounts",
         };
         const actualMethodName = methodMap[methodName] || methodName;
         let methodResult: unknown;
         if (actualMethodName === "openPortal") {
           await openPortal();
-          methodResult = { opened: true, route: "/api/v1/sessions/{sessionId}/portal-links" };
+          methodResult = {
+            opened: true,
+            route: "/api/v1/sessions/{sessionId}/portal-links",
+          };
         } else if (actualMethodName in v1MethodMap) {
-          const v1 = (finatic as unknown as { v1?: Record<string, unknown> }).v1;
+          const v1 = (finatic as unknown as { v1?: Record<string, unknown> })
+            .v1;
           const v1MethodName = v1MethodMap[actualMethodName];
           const target = v1?.[v1MethodName];
           if (typeof target !== "function") {
@@ -462,18 +457,9 @@ export function MethodHarness({
               account.accountStatus === "ACTIVE" ||
               account.status === "ACTIVE" ||
               account.status === "active" ||
-              account.active === true,
+              account.active === true ||
+              !account.accountStatus,
           );
-        } else if (
-          methodName === "getBrokerList" &&
-          methodResult &&
-          typeof methodResult === "object" &&
-          !Array.isArray(methodResult)
-        ) {
-          // getBrokers might return an object, convert to array
-          methodResult = Array.isArray(methodResult)
-            ? methodResult
-            : Object.values(methodResult);
         }
 
         result = methodResult;

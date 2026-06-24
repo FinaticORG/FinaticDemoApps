@@ -10,8 +10,26 @@ import React, {
   useState,
 } from 'react';
 import { FinaticConnect } from '@finatic/client';
+import type { SdkConfigOverrides } from '@finatic/client';
 import { useEnvironmentConfig } from '@/app/providers/EnvironmentConfigProvider';
+import type { EnvironmentMode, EnvironmentType } from '@/lib/utils';
 import { openV1Portal } from '@/lib/v1Portal';
+
+function resolveFinaticSdkEnvironment(
+  mode: EnvironmentMode,
+  environment: EnvironmentType,
+): NonNullable<SdkConfigOverrides['environment']> {
+  if (mode === 'sandbox') {
+    return 'sandbox';
+  }
+  if (environment === 'prod') {
+    return 'production';
+  }
+  if (environment === 'staging') {
+    return 'staging';
+  }
+  return 'development';
+}
 
 type LogEntry = {
   type: 'info' | 'error' | 'success';
@@ -464,7 +482,7 @@ export function FinaticProvider({ children }: { children: React.ReactNode }) {
 
       const realFinatic = await FinaticConnect.init(token, existingUserId || undefined, {
         baseUrl: apiUrl,
-        apiEnvironment: mode,
+        environment: resolveFinaticSdkEnvironment(mode, environment),
       });
 
       // Add instance ID to the finatic object for tracking

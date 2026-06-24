@@ -1,0 +1,76 @@
+name: Demo Apps CI
+
+on:
+  push:
+    branches:
+      - develop
+      - staging
+      - fdx-account-consent-v1
+  pull_request:
+    branches:
+      - develop
+      - staging
+      - fdx-account-consent-v1
+
+jobs:
+  client-demo-app:
+    name: client/demo-app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client/demo-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/demo-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+  simple-demo-app:
+    name: client/simple-demo-app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client/simple-demo-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+  server-node-demo:
+    name: server-node/demo-app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server-node/demo-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build

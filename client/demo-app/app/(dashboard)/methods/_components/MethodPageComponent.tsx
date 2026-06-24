@@ -7,6 +7,7 @@ import {
   type MethodDefinition,
   type MethodGroup,
 } from "@/app/(dashboard)/methods/_components/MethodHarness";
+import { getFinaticV1Client } from "@/lib/v1-client";
 
 function parseNumberField(
   values: Record<string, string> | undefined,
@@ -42,12 +43,16 @@ function parseV1Query(raw?: string, label = "query JSON") {
   }
   const query = { ...(parsed as Record<string, unknown>) };
   if ("connectionId" in query) {
-    throw new Error("Use financial accountId for v1 resources; connectionId is internal only.");
+    throw new Error(
+      "Use financial accountId for v1 resources; connectionId is internal only.",
+    );
   }
   return query;
 }
 
-function prepareAccountScopedArgs(fieldValues: Record<string, string> | undefined) {
+function prepareAccountScopedArgs(
+  fieldValues: Record<string, string> | undefined,
+) {
   const accountId = fieldValues?.accountId?.trim();
   if (!accountId) {
     throw new Error("Enter a financial accountId.");
@@ -135,51 +140,6 @@ export function MethodPageComponent() {
         description: "Closes the hosted onboarding portal.",
         input: { type: "none" },
       },
-      {
-        key: "disconnectCompany",
-        label: "Disconnect company",
-        description: "Calls the revoke endpoint for a connection id.",
-        methodName: "disconnectCompanyFromBroker",
-        input: {
-          type: "fields",
-          fields: [
-            {
-              name: "connectionId",
-              label: "Connection id",
-              placeholder: "connection-uuid",
-            },
-          ],
-        },
-        prepareArgs: ({ fieldValues }) => {
-          const value = fieldValues?.connectionId?.trim();
-          if (!value) {
-            throw new Error("Enter a connection id to disconnect.");
-          }
-          return [{ connectionId: value }];
-        },
-      },
-      {
-        key: "getCompany",
-        label: "Get company",
-        description: "Get public company details by ID.",
-        input: {
-          type: "fields",
-          fields: [
-            {
-              name: "companyId",
-              label: "Company id",
-              placeholder: "company-uuid",
-            },
-          ],
-        },
-        prepareArgs: ({ fieldValues }) => {
-          const value = fieldValues?.companyId?.trim();
-          if (!value) {
-            throw new Error("Enter a company id.");
-          }
-          return [{ companyId: value }];
-        },
-      },
     ];
 
     groups.push({
@@ -191,25 +151,57 @@ export function MethodPageComponent() {
 
     const directoryMethods: MethodDefinition[] = [
       {
-        key: "getBrokerList",
-        label: "Get broker directory",
+        key: "listPortalInstitutions",
+        label: "List portal institutions",
         description:
-          "Loads the supported broker catalogue (with CDN logo paths).",
+          "Loads portal institutions for the active session (v1 portal catalogue).",
         input: { type: "none" },
+        run: async ({ finatic }) => {
+          const sessionId = await finatic.getSessionId();
+          if (!sessionId) {
+            throw new Error(
+              "No active session — open the portal and authenticate first.",
+            );
+          }
+          return getFinaticV1Client(finatic).listPortalInstitutions(sessionId);
+        },
       },
       {
-        key: "getBrokerConnections",
-        label: "Get broker connections",
-        description:
-          "Retrieves active broker connections for the authenticated user.",
+        key: "listAccountGrants",
+        label: "List account grants",
+        description: "Lists company account grants for the authenticated user.",
         input: { type: "none" },
+        run: async ({ finatic }) =>
+          getFinaticV1Client(finatic).listAccountGrants(),
+      },
+      {
+        key: "revokeAccountGrant",
+        label: "Revoke account grant",
+        description: "Revokes access for a grant id.",
+        input: {
+          type: "fields",
+          fields: [
+            {
+              name: "grantId",
+              label: "Grant id",
+              placeholder: "grant-uuid",
+            },
+          ],
+        },
+        run: async ({ finatic, fieldValues }) => {
+          const grantId = fieldValues?.grantId?.trim();
+          if (!grantId) {
+            throw new Error("Enter a grant id to revoke.");
+          }
+          return getFinaticV1Client(finatic).revokeAccountGrant(grantId);
+        },
       },
     ];
 
     groups.push({
       key: "directory",
-      title: "Broker directory",
-      description: "Inspect broker metadata and existing user connections.",
+      title: "Grants & institutions",
+      description: "Inspect v1 portal institutions and account grants.",
       methods: directoryMethods,
     });
 
@@ -217,8 +209,7 @@ export function MethodPageComponent() {
       {
         key: "getAccounts",
         label: "Get accounts",
-        description:
-          "Retrieves paginated account-first v1 accounts.",
+        description: "Retrieves paginated account-first v1 accounts.",
         input: {
           type: "fields",
           fields: [
@@ -337,8 +328,7 @@ export function MethodPageComponent() {
               label: "Query JSON",
               placeholder:
                 '{"transactionType":"DIVIDEND","startDate":"","endDate":"","limit":50,"offset":0}',
-              description:
-                "Optional account-scoped v1 transaction query JSON.",
+              description: "Optional account-scoped v1 transaction query JSON.",
             },
           ],
         },
@@ -379,8 +369,7 @@ export function MethodPageComponent() {
       {
         key: "getOrders",
         label: "Get orders",
-        description:
-          "Retrieves account-scoped v1 orders.",
+        description: "Retrieves account-scoped v1 orders.",
         input: {
           type: "fields",
           fields: [
@@ -457,7 +446,13 @@ export function MethodPageComponent() {
           if (!orderId) {
             throw new Error("Enter an order ID.");
           }
-          return [{ ...parseV1Query(fieldValues?.filter, "query JSON"), accountId, orderId }];
+          return [
+            {
+              ...parseV1Query(fieldValues?.filter, "query JSON"),
+              accountId,
+              orderId,
+            },
+          ];
         },
       },
       {
@@ -496,7 +491,13 @@ export function MethodPageComponent() {
           if (!orderId) {
             throw new Error("Enter an order ID.");
           }
-          return [{ ...parseV1Query(fieldValues?.filter, "query JSON"), accountId, orderId }];
+          return [
+            {
+              ...parseV1Query(fieldValues?.filter, "query JSON"),
+              accountId,
+              orderId,
+            },
+          ];
         },
       },
     ];
@@ -512,8 +513,7 @@ export function MethodPageComponent() {
       {
         key: "getPositions",
         label: "Get positions",
-        description:
-          "Retrieves account-scoped v1 positions.",
+        description: "Retrieves account-scoped v1 positions.",
         input: {
           type: "fields",
           fields: [
@@ -557,8 +557,7 @@ export function MethodPageComponent() {
       {
         key: "getPositionLots",
         label: "Get position lots",
-        description:
-          "Retrieves account-scoped v1 position lots.",
+        description: "Retrieves account-scoped v1 position lots.",
         input: {
           type: "fields",
           fields: [
@@ -572,7 +571,8 @@ export function MethodPageComponent() {
               name: "filter",
               label: "Query JSON",
               placeholder: '{"limit":50,"offset":0}',
-              description: "Optional account-scoped v1 position-lots query JSON.",
+              description:
+                "Optional account-scoped v1 position-lots query JSON.",
             },
           ],
         },
@@ -635,7 +635,13 @@ export function MethodPageComponent() {
           if (!lotId) {
             throw new Error("Enter a lot ID.");
           }
-          return [{ ...parseV1Query(fieldValues?.filter, "query JSON"), accountId, lotId }];
+          return [
+            {
+              ...parseV1Query(fieldValues?.filter, "query JSON"),
+              accountId,
+              lotId,
+            },
+          ];
         },
       },
     ];

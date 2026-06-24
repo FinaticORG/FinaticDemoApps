@@ -1,0 +1,100 @@
+{
+  "providers": [
+    {
+      "provider_id": "alpaca",
+      "display_name": "Alpaca",
+      "auth_kind": "oauth",
+      "sync_path": "pull",
+      "supports_paper": true,
+      "paper_uses_separate_credentials": true
+    },
+    {
+      "provider_id": "etoro",
+      "display_name": "eToro",
+      "auth_kind": "oauth",
+      "sync_path": "pull",
+      "supports_paper": false,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "fidelity",
+      "display_name": "Fidelity",
+      "auth_kind": "username_password",
+      "sync_path": "pull",
+      "supports_paper": false,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "interactive_brokers",
+      "display_name": "Interactive Brokers",
+      "auth_kind": "api_key",
+      "sync_path": "pull",
+      "supports_paper": true,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "mt4",
+      "display_name": "MetaTrader 4",
+      "auth_kind": "push_agent",
+      "sync_path": "push_only",
+      "supports_paper": true,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "mt5",
+      "display_name": "MetaTrader 5",
+      "auth_kind": "push_agent",
+      "sync_path": "push_only",
+      "supports_paper": true,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "ninja_trader",
+      "display_name": "NinjaTrader",
+      "auth_kind": "oauth",
+      "sync_path": "pull",
+      "supports_paper": true,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "robinhood",
+      "display_name": "Robinhood",
+      "auth_kind": "username_password",
+      "sync_path": "pull",
+      "supports_paper": false,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "tasty_trade",
+      "display_name": "tastytrade",
+      "auth_kind": "oauth",
+      "sync_path": "pull",
+      "supports_paper": true,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "tradestation",
+      "display_name": "TradeStation",
+      "auth_kind": "oauth",
+      "sync_path": "pull",
+      "supports_paper": true,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "trading212",
+      "display_name": "Trading 212",
+      "auth_kind": "api_key",
+      "sync_path": "pull",
+      "supports_paper": true,
+      "paper_uses_separate_credentials": false
+    },
+    {
+      "provider_id": "webull",
+      "display_name": "Webull",
+      "auth_kind": "oauth",
+      "sync_path": "pull",
+      "supports_paper": false,
+      "paper_uses_separate_credentials": false
+    }
+  ]
+}

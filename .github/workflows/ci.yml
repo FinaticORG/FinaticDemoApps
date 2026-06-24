@@ -41,7 +41,9 @@ jobs:
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        run: echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
+        run: |
+          echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
+          npm install ../../sdks/FinaticClientSDK --legacy-peer-deps
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
@@ -80,7 +82,9 @@ jobs:
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        run: echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
+        run: |
+          echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
+          npm install ../../sdks/FinaticClientSDK --legacy-peer-deps
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps

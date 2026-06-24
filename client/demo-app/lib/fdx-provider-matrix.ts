@@ -1,7 +1,7 @@
 /**
  * Canonical FDX v1 provider matrix for demo UI broker pickers.
  */
-import providerMatrixData from "../../../../Backend/FinaticCore/src/finatic_core/core/fdx/provider_matrix_data.json";
+import providerMatrixData from "./provider_matrix_data.json";
 
 export type FdxProviderMatrixEntry = {
   providerId: string;

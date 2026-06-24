@@ -81,7 +81,7 @@ const navigation = [
   },
 ]
 
-interface AppSidebarProps extends React.ComponentProps<"div"> {}
+type AppSidebarProps = React.ComponentProps<"div">
 
 export function AppSidebar({ className, ...props }: AppSidebarProps) {
   const pathname = usePathname()

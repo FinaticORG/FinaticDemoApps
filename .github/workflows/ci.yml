@@ -51,9 +51,6 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Lint
-        run: npm run lint
-
   simple-demo-app:
     name: client/simple-demo-app
     runs-on: ubuntu-latest

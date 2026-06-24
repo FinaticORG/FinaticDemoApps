@@ -44,7 +44,7 @@ jobs:
         run: echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Typecheck
         run: npx tsc --noEmit
@@ -83,7 +83,7 @@ jobs:
         run: echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build
         run: npm run build
@@ -116,10 +116,12 @@ jobs:
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        run: echo "@finatic/server-node:file:../../sdks/FinaticServerSDK-Node" > .npmrc
+        run: |
+          echo "@finatic/server-node:file:../../sdks/FinaticServerSDK-Node" > .npmrc
+          npm install ../../sdks/FinaticServerSDK-Node --legacy-peer-deps
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build
         run: npm run build

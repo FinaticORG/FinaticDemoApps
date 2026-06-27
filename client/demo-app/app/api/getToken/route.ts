@@ -26,22 +26,19 @@ async function handleRequest(request: Request) {
       );
     }
 
-    const sessionBody = {
-      environment: mode,
-      metadata: {
-        demo: 'client/demo-app',
-        runtimeEnvironment: environment,
-      },
-    };
+    // Client SDK bootstrap: API key (server-only) → session init one_time_token.
+    // Do not use POST /api/v1/sessions here — that is the server-owned session path.
+    const initUrl = `${apiUrl}/api/v1/session/init`;
+    console.log('Requesting session init token from:', initUrl);
 
-    const response = await fetch(`${apiUrl}/api/v1/sessions`, {
+    const response = await fetch(initUrl, {
       method: 'POST',
       headers: {
         'X-API-Key': apiKey,
         'X-Finatic-Environment': mode,
         'Content-Type': 'application/json',
+        'User-Agent': request.headers.get('user-agent') ?? 'finatic-client-demo-app',
       },
-      body: JSON.stringify(sessionBody),
     });
 
     console.log('Finatic API response status:', response.status);

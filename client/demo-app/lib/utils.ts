@@ -40,6 +40,26 @@ export const DEFAULT_PUBLIC_API_URL_BY_ENVIRONMENT: Record<EnvironmentType, stri
   prod: 'https://api.finatic.dev',
 };
 
+/** FinaticConnect (hosted portal) base URLs — not the demo app or FinaticWeb. */
+export const DEFAULT_CONNECT_URL_BY_ENVIRONMENT: Record<EnvironmentType, string> = {
+  dev: 'http://localhost:5174',
+  staging: 'https://connect-staging.finatic.dev',
+  prod: 'https://connect.finatic.dev',
+};
+
+export function getConnectPortalUrl(environment: EnvironmentType): string {
+  const suffix = getEnvironmentVariableSuffix(environment);
+  const envUrl =
+    process.env.NEXT_PUBLIC_FINATIC_CONNECT_URL ||
+    process.env[`NEXT_PUBLIC_FINATIC_${suffix}_CONNECT_URL`] ||
+    process.env.FINATIC_CONNECT_URL ||
+    process.env[`FINATIC_${suffix}_CONNECT_URL`] ||
+    process.env.CONNECT_PORTAL_URL ||
+    process.env.PUBLIC_PORTAL_URL;
+  if (envUrl) return envUrl.replace(/\/$/, '');
+  return DEFAULT_CONNECT_URL_BY_ENVIRONMENT[environment];
+}
+
 export function getApiUrl(environment: EnvironmentType, fallbackUrl: string) {
   return process.env[getApiUrlEnvVarName(environment)] || fallbackUrl;
 }

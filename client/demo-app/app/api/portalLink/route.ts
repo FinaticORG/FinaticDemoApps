@@ -1,15 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getApiKey, getApiUrl, type EnvironmentMode, type EnvironmentType } from '@/lib/utils';
-
-function getConnectUrl(environment: EnvironmentType) {
-  const envUrl =
-    process.env.NEXT_PUBLIC_FINATIC_CONNECT_URL ||
-    process.env.FINATIC_CONNECT_URL ||
-    process.env.CONNECT_PORTAL_URL ||
-    process.env.PUBLIC_PORTAL_URL;
-  if (envUrl) return envUrl.replace(/\/$/, '');
-  return environment === 'dev' ? 'http://localhost:3000' : 'https://connect.finatic.dev';
-}
+import { getApiKey, getApiUrl, getConnectPortalUrl, type EnvironmentMode, type EnvironmentType } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -63,7 +53,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Portal link response did not include a token' }, { status: 502 });
     }
 
-    const portalUrl = new URL('/auth', getConnectUrl(environment));
+    const portalUrl = new URL('/auth', getConnectPortalUrl(environment));
     portalUrl.searchParams.set('token', token);
     return NextResponse.json({ portalUrl: portalUrl.toString() });
   } catch (error) {

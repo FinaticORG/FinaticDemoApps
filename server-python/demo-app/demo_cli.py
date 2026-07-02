@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Finatic Server SDK Python Usage Example
+"""Finatic Server SDK Python Usage Example
 
 This file demonstrates the FDX v1 account-first flow:
 session -> portal link -> account read -> webhook catalog.
@@ -23,7 +22,9 @@ try:
 
     console = Console()
 except ImportError:
-    print("❌ Error: rich package is required. Install with: uv pip install rich")
+    print(
+        "❌ Error: rich package is required. Install with: uv pip install rich"
+    )
     import sys
 
     sys.exit(1)
@@ -49,11 +50,15 @@ from finatic_server_python import FinaticServer
 API_URL = os.getenv("FINATIC_API_URL", "https://api.finatic.dev")
 API_KEY = os.getenv("FINATIC_API_KEY")
 FINATIC_ENVIRONMENT = os.getenv("FINATIC_ENVIRONMENT", "sandbox")
-CONNECT_URL = os.getenv("FINATIC_CONNECT_URL", "https://connect.finatic.dev").rstrip("/")
+CONNECT_URL = os.getenv(
+    "FINATIC_CONNECT_URL", "https://connect.finatic.dev"
+).rstrip("/")
 
 
 def get_portal_url(portal_link: dict) -> str | None:
-    portal_data = portal_link.get("success", {}).get("data", {}) or portal_link.get("data", {})
+    portal_data = portal_link.get("success", {}).get(
+        "data", {}
+    ) or portal_link.get("data", {})
     portal_url = portal_data.get("portalUrl") or portal_data.get("portal_url")
     if portal_url:
         return portal_url
@@ -71,7 +76,9 @@ async def wait_for_portal_authentication(portal_url: str) -> bool:
     """Wait for user to authenticate via portal."""
     console.print("\n[blue]🌐 Please visit this URL to authenticate:[/blue]")
     console.print(f"[cyan]{portal_url}[/cyan]")
-    confirmed = Confirm.ask("Have you completed authentication in the portal?", default=False)
+    confirmed = Confirm.ask(
+        "Have you completed authentication in the portal?", default=False
+    )
 
     if not confirmed:
         console.print("[red]Authentication not completed. Exiting...[/red]")
@@ -91,10 +98,12 @@ async def main():
         },
     )
 
-    session_id = finatic.get_session_id()
-    company_account_id = finatic.get_company_id()
+    session_id = finatic.v1.get_session_id()
+    company_account_id = finatic.v1.get_company_id()
     if not session_id or not company_account_id:
-        raise RuntimeError("Session initialization did not return session/company context.")
+        raise RuntimeError(
+            "Session initialization did not return session/company context."
+        )
 
     console.print(
         {
@@ -117,7 +126,9 @@ async def main():
     accounts_response = await finatic.v1.list_accounts()
     console.print(accounts_response)
 
-    accounts = accounts_response.get("success", {}).get("data", []) or accounts_response.get("data", [])
+    accounts = accounts_response.get("success", {}).get(
+        "data", []
+    ) or accounts_response.get("data", [])
     if accounts:
         first_account = accounts[0]
         account_id = first_account.get("accountId") or first_account.get("id")

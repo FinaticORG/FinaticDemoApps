@@ -6,7 +6,7 @@
  * the Finatic Client SDK.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   initializeSDK,
   isAuthenticated,
@@ -14,8 +14,8 @@ import {
   openPortal,
   listAccounts,
   getAccount,
-} from './sdk';
-import './App.css';
+} from "./sdk";
+import "./App.css";
 
 function App() {
   // UI State
@@ -40,7 +40,9 @@ function App() {
         await initializeSDK();
         updateAuthStatus();
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to initialize SDK');
+        setError(
+          err instanceof Error ? err.message : "Failed to initialize SDK",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -65,7 +67,7 @@ function App() {
 
   const handleListAccounts = async () => {
     if (!authStatus.isAuthenticated) {
-      setAccountError('Please authenticate first');
+      setAccountError("Please authenticate first");
       return;
     }
 
@@ -76,11 +78,12 @@ function App() {
     try {
       const result = await listAccounts();
       setAccountResult(result);
-      console.log('Accounts loaded:', result);
+      console.log("Accounts loaded:", result);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load accounts';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load accounts";
       setAccountError(errorMessage);
-      console.error('Error loading accounts:', err);
+      console.error("Error loading accounts:", err);
     } finally {
       setLoadingAccounts(false);
     }
@@ -88,9 +91,13 @@ function App() {
 
   const handleGetFirstAccount = async () => {
     const accounts = accountResult?.success?.data ?? accountResult?.data ?? [];
-    const firstAccountId = Array.isArray(accounts) ? accounts[0]?.accountId || accounts[0]?.id : null;
+    const firstAccountId = Array.isArray(accounts)
+      ? accounts[0]?.accountId || accounts[0]?.id
+      : null;
     if (!firstAccountId) {
-      setAccountError('Load accounts first, then choose an account id from the response.');
+      setAccountError(
+        "Load accounts first, then choose an account id from the response.",
+      );
       return;
     }
 
@@ -99,7 +106,9 @@ function App() {
     try {
       setAccountResult(await getAccount(firstAccountId));
     } catch (err) {
-      setAccountError(err instanceof Error ? err.message : 'Failed to load account');
+      setAccountError(
+        err instanceof Error ? err.message : "Failed to load account",
+      );
     } finally {
       setLoadingAccounts(false);
     }
@@ -116,11 +125,11 @@ function App() {
           setError(err.message);
         },
         onClose: () => {
-          console.log('Portal closed');
+          console.log("Portal closed");
         },
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to open portal');
+      setError(err instanceof Error ? err.message : "Failed to open portal");
     }
   };
 
@@ -152,16 +161,22 @@ function App() {
     <div className="app">
       <div className="container">
         <header>
-          <h1>Finatic Client SDK - Simple Demo</h1>
+          <h1>Finatic Client SDK Demo</h1>
           <div className="auth-status">
             <span
               className={`status ${
-                authStatus.isAuthenticated ? 'authenticated' : 'not-authenticated'
+                authStatus.isAuthenticated
+                  ? "authenticated"
+                  : "not-authenticated"
               }`}
             >
-              {authStatus.isAuthenticated ? '✓ Authenticated' : '✗ Not Authenticated'}
+              {authStatus.isAuthenticated
+                ? "✓ Authenticated"
+                : "✗ Not Authenticated"}
             </span>
-            {authStatus.userId && <span className="user-id">User: {authStatus.userId}</span>}
+            {authStatus.userId && (
+              <span className="user-id">User: {authStatus.userId}</span>
+            )}
           </div>
         </header>
 
@@ -170,7 +185,9 @@ function App() {
         {!authStatus.isAuthenticated && (
           <div className="auth-section">
             <h2>Authentication Required</h2>
-            <p>Click the button below to authenticate via the Finatic portal.</p>
+            <p>
+              Click the button below to authenticate via the Finatic portal.
+            </p>
             <button onClick={handleOpenPortal} className="btn btn-primary">
               Open Authentication Portal
             </button>
@@ -180,30 +197,38 @@ function App() {
         {authStatus.isAuthenticated && (
           <div className="data-section">
             <div className="actions">
-              <button onClick={handleListAccounts} className="btn btn-primary" disabled={loadingAccounts}>
-                {loadingAccounts ? 'Loading...' : 'List Accounts'}
+              <button
+                onClick={handleListAccounts}
+                className="btn btn-primary"
+                disabled={loadingAccounts}
+              >
+                {loadingAccounts ? "Loading..." : "List Accounts"}
               </button>
-              <button onClick={handleGetFirstAccount} className="btn btn-secondary" disabled={loadingAccounts || !accountResult}>
+              <button
+                onClick={handleGetFirstAccount}
+                className="btn btn-secondary"
+                disabled={loadingAccounts || !accountResult}
+              >
                 Get First Account
               </button>
             </div>
 
             {accountError && (
-              <div className="error" style={{ marginTop: '1rem' }}>
+              <div className="error" style={{ marginTop: "1rem" }}>
                 Account Error: {accountError}
               </div>
             )}
 
             {accountResult && (
-              <div className="data-card" style={{ marginTop: '1rem' }}>
+              <div className="data-card" style={{ marginTop: "1rem" }}>
                 <h3>Account Result</h3>
                 <pre
                   style={{
-                    background: '#f5f5f5',
-                    padding: '1rem',
-                    borderRadius: '4px',
-                    overflow: 'auto',
-                    maxHeight: '400px',
+                    background: "#f5f5f5",
+                    padding: "1rem",
+                    borderRadius: "4px",
+                    overflow: "auto",
+                    maxHeight: "400px",
                   }}
                 >
                   {JSON.stringify(accountResult, null, 2)}

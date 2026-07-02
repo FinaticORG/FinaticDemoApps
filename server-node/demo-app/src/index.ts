@@ -61,8 +61,8 @@ async function main() {
     structuredLogging: true,
   });
 
-  const sessionId = finatic.getSessionId();
-  const companyId = finatic.getCompanyId();
+  const sessionId = finatic.v1.getSessionId();
+  const companyId = finatic.v1.getCompanyId();
   if (!sessionId || !companyId) {
     throw new Error('Session initialization did not return session and company context.');
   }

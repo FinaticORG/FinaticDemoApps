@@ -169,7 +169,7 @@ export async function initializeSDK(): Promise<FinaticConnect> {
     body: JSON.stringify({
       environment: FINATIC_ENVIRONMENT,
       metadata: {
-        demo: 'client/simple-demo-app',
+        demo: 'client/demo-app',
       },
     }),
   });
@@ -228,7 +228,7 @@ export function isAuthenticated(): boolean {
   if (!finaticInstance) {
     return false;
   }
-  return finaticInstance.isAuthed();
+  return finaticInstance.v1.isAuthed();
 }
 
 /**
@@ -240,7 +240,7 @@ export function getUserId(): string | null {
   if (!finaticInstance) {
     return null;
   }
-  return finaticInstance.getUserId() || null;
+  return finaticInstance.v1.getUserId() || null;
 }
 
 /**
@@ -284,7 +284,7 @@ export async function openPortal(options?: {
       };
 
   const apiKey = (import.meta as any).env?.VITE_FINATIC_API_KEY;
-  const sessionId = finaticInstance.getSessionId?.() ?? (finaticInstance as any).sessionId;
+  const sessionId = finaticInstance.v1.getSessionId?.() ?? (finaticInstance as any).sessionId;
 
   if (!apiKey) {
     throw new Error('VITE_FINATIC_API_KEY environment variable is required');

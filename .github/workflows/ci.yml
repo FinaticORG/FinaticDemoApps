@@ -48,44 +48,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Typecheck
-        run: npx tsc --noEmit
-
-  simple-demo-app:
-    name: client/simple-demo-app
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: client/simple-demo-app
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/checkout@v4
-        with:
-          repository: FinaticORG/FinaticClientSDK
-          ref: fdx-account-consent-v1
-          path: sdks/FinaticClientSDK
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: |
-            client/simple-demo-app/package-lock.json
-            sdks/FinaticClientSDK/package-lock.json
-
-      - name: Build Client SDK
-        working-directory: sdks/FinaticClientSDK
-        run: npm ci && npm run build
-
-      - name: Configure local SDK path
-        run: |
-          echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
-          npm install ../../sdks/FinaticClientSDK --legacy-peer-deps
-
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
       - name: Build
         run: npm run build
 

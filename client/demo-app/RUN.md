@@ -1,11 +1,11 @@
-# How to Run the Simple Demo App
+# How to Run the Client Demo App
 
 ## Quick Start
 
 1. **Navigate to the directory**:
 
    ```bash
-   cd client/simple-demo-app
+   cd client/demo-app
    ```
 
 2. **Install dependencies**:
@@ -63,7 +63,7 @@ server: {
 
 ### API Key not working?
 
-- Make sure your `.env` file is in the `simple-demo-app` directory
+- Make sure your `.env` file is in the `demo-app` directory
 - Restart the dev server after creating/modifying `.env`
 - Check that `VITE_FINATIC_API_KEY` is set correctly
 

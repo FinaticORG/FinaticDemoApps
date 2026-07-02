@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: FinaticORG/FinaticClientSDK
-          ref: fdx-account-consent-v1
+          ref: develop
           path: sdks/FinaticClientSDK
 
       - uses: actions/setup-node@v4
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: FinaticORG/FinaticServerSDK-Node
-          ref: fdx-account-consent-v1
+          ref: develop
           path: sdks/FinaticServerSDK-Node
 
       - uses: actions/setup-node@v4

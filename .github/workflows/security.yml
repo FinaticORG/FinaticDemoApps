@@ -33,6 +33,7 @@ jobs:
   licenses-npm:
     uses: FinaticORG/.github/.github/workflows/reusable-licenses-npm.yml@main
     with:
+      working-directory: client/demo-app
       strict: true
 
   codeql:

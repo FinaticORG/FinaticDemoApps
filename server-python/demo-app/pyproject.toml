@@ -30,7 +30,7 @@ dependencies = [
     "pydantic==2.5.0",
     "python-multipart==0.0.6",
     "aiohttp>=3.8.0",
-    "httpx>=0.24.0",
+    "httpx>=0.28.1",
     "rich>=13.0.0",
     "questionary>=2.0.0",
     # SDK dependencies (needed when importing SDK directly)

@@ -30,11 +30,39 @@ jobs:
     with:
       strict: true
 
+  # Mirror client CI layout: file: deps need a sibling Client SDK checkout.
   licenses-npm:
-    uses: FinaticORG/.github/.github/workflows/reusable-licenses-npm.yml@main
-    with:
-      working-directory: client/demo-app
-      strict: true
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client/demo-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: FinaticORG/FinaticClientSDK
+          ref: develop
+          path: sdks/FinaticClientSDK
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build Client SDK
+        working-directory: sdks/FinaticClientSDK
+        run: npm ci && npm run build
+
+      - name: Configure local SDK path
+        run: |
+          echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
+          npm install ../../sdks/FinaticClientSDK --legacy-peer-deps
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: License summary
+        run: npx --yes license-checker --production --summary
 
   codeql:
     uses: FinaticORG/.github/.github/workflows/reusable-codeql.yml@main

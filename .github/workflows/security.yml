@@ -1,0 +1,70 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [develop, staging, main]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  actionlint:
+    uses: FinaticORG/.github/.github/workflows/reusable-actionlint.yml@main
+    with:
+      strict: true
+
+  gitleaks:
+    uses: FinaticORG/.github/.github/workflows/reusable-gitleaks.yml@main
+    with:
+      strict: true
+      scan-mode: no-git
+
+  osv:
+    uses: FinaticORG/.github/.github/workflows/reusable-osv.yml@main
+    with:
+      strict: true
+
+  # Mirror client CI layout: file: deps need a sibling Client SDK checkout.
+  licenses-npm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client/demo-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: FinaticORG/FinaticClientSDK
+          ref: develop
+          path: sdks/FinaticClientSDK
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build Client SDK
+        working-directory: sdks/FinaticClientSDK
+        run: npm ci && npm run build
+
+      - name: Configure local SDK path
+        run: |
+          echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
+          npm install ../../sdks/FinaticClientSDK --legacy-peer-deps
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: License summary
+        run: npx --yes license-checker --production --summary
+
+  codeql:
+    uses: FinaticORG/.github/.github/workflows/reusable-codeql.yml@main
+    with:
+      languages: '["javascript-typescript"]'

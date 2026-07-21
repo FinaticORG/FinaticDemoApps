@@ -1,0 +1,102 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /client/demo-app
+    schedule:
+      interval: weekly
+    target-branch: develop
+    open-pull-requests-limit: 5
+    reviewers:
+      - founders
+    assignees:
+      - founders
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      production-dependencies:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+
+  - package-ecosystem: npm
+    directory: /server-node/demo-app
+    schedule:
+      interval: weekly
+    target-branch: develop
+    open-pull-requests-limit: 5
+    reviewers:
+      - founders
+    assignees:
+      - founders
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      production-dependencies:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+
+  - package-ecosystem: pip
+    directory: /server-python/demo-app
+    schedule:
+      interval: weekly
+    target-branch: develop
+    open-pull-requests-limit: 5
+    reviewers:
+      - founders
+    assignees:
+      - founders
+    commit-message:
+      prefix: chore
+      include: scope
+    versioning-strategy: increase
+    groups:
+      runtime-dependencies:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: develop
+    reviewers:
+      - founders
+    assignees:
+      - founders
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      ci-dependencies:
+        patterns:
+          - "*"

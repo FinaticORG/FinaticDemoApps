@@ -24,7 +24,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "typescript": "^5.2.2",
-    "vite": "^5.0.8"
+    "vite": "^6.4.3"
   },
   "repository": {
     "type": "git",
@@ -33,5 +33,16 @@
   "bugs": {
     "url": "https://github.com/FinaticORG/FinaticDemoApps/issues"
   },
-  "homepage": "https://github.com/FinaticORG/FinaticDemoApps#readme"
+  "homepage": "https://github.com/FinaticORG/FinaticDemoApps#readme",
+  "overrides": {
+    "brace-expansion": "2.1.2",
+    "flatted": ">=3.4.0",
+    "picomatch": ">=2.3.2",
+    "rollup": ">=4.59.0",
+    "minimatch": ">=9.0.7",
+    "js-yaml": ">=4.3.0",
+    "axios": ">=1.15.3",
+    "dompurify": ">=3.2.6",
+    "postcss": ">=8.5.6"
+  }
 }

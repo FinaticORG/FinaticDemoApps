@@ -1,16 +1,16 @@
 name: Demo Apps CI
 
 on:
-  push:
-    branches:
-      - develop
-      - staging
-      - fdx-account-consent-v1
   pull_request:
     branches:
       - develop
       - staging
       - fdx-account-consent-v1
+
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   client-demo-app:

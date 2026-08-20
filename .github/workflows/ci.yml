@@ -22,6 +22,7 @@ jobs:
     steps:
       - name: Skip heavy CI for Dependabot / release PRs
         if: github.actor == 'dependabot[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.title, 'chore(release):'))
+        working-directory: .
         run: echo "Skipping heavy product CI for Dependabot or chore(release) PRs (Actions cost control)."
       - uses: actions/checkout@v7
         if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
@@ -70,6 +71,7 @@ jobs:
     steps:
       - name: Skip heavy CI for Dependabot / release PRs
         if: github.actor == 'dependabot[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.title, 'chore(release):'))
+        working-directory: .
         run: echo "Skipping heavy product CI for Dependabot or chore(release) PRs (Actions cost control)."
       - uses: actions/checkout@v7
         if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)

@@ -20,21 +20,21 @@ jobs:
       run:
         working-directory: client/demo-app
     steps:
-      - name: Skip heavy CI for Dependabot
-        if: github.actor == 'dependabot[bot]'
-        run: echo "Skipping heavy product CI for Dependabot (Actions cost control)."
+      - name: Skip heavy CI for Dependabot / release PRs
+        if: github.actor == 'dependabot[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.title, 'chore(release):'))
+        run: echo "Skipping heavy product CI for Dependabot or chore(release) PRs (Actions cost control)."
       - uses: actions/checkout@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
 
       - uses: actions/checkout@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         with:
           repository: FinaticORG/FinaticClientSDK
           ref: develop
           path: sdks/FinaticClientSDK
 
       - uses: actions/setup-node@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         with:
           node-version: 20
           cache: npm
@@ -43,22 +43,22 @@ jobs:
             sdks/FinaticClientSDK/package-lock.json
 
       - name: Build Client SDK
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         working-directory: sdks/FinaticClientSDK
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: |
           echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
           npm install ../../sdks/FinaticClientSDK --legacy-peer-deps
 
       - name: Install dependencies
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: npm install --legacy-peer-deps
 
       - name: Build
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: npm run build
 
   server-node-demo:
@@ -68,21 +68,21 @@ jobs:
       run:
         working-directory: server-node/demo-app
     steps:
-      - name: Skip heavy CI for Dependabot
-        if: github.actor == 'dependabot[bot]'
-        run: echo "Skipping heavy product CI for Dependabot (Actions cost control)."
+      - name: Skip heavy CI for Dependabot / release PRs
+        if: github.actor == 'dependabot[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.title, 'chore(release):'))
+        run: echo "Skipping heavy product CI for Dependabot or chore(release) PRs (Actions cost control)."
       - uses: actions/checkout@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
 
       - uses: actions/checkout@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         with:
           repository: FinaticORG/FinaticServerSDK-Node
           ref: develop
           path: sdks/FinaticServerSDK-Node
 
       - uses: actions/setup-node@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         with:
           node-version: 20
           cache: npm
@@ -91,20 +91,20 @@ jobs:
             sdks/FinaticServerSDK-Node/package-lock.json
 
       - name: Build Server Node SDK
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         working-directory: sdks/FinaticServerSDK-Node
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: |
           echo "@finatic/server-node:file:../../sdks/FinaticServerSDK-Node" > .npmrc
           npm install ../../sdks/FinaticServerSDK-Node --legacy-peer-deps
 
       - name: Install dependencies
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: npm install --legacy-peer-deps
 
       - name: Build
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: npm run build

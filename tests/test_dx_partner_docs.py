@@ -38,9 +38,28 @@ def test_client_demo_mints_tokens_on_the_dev_server() -> None:
         encoding="utf-8"
     )
     run_guide = (ROOT / "client/demo-app/RUN.md").read_text(encoding="utf-8")
+    env_example = (ROOT / "client/demo-app/.env.example").read_text(
+        encoding="utf-8"
+    )
+    app_source = (ROOT / "client/demo-app/src/App.tsx").read_text(encoding="utf-8")
 
-    assert "VITE_FINATIC_API_KEY" not in sdk_source
-    assert "VITE_FINATIC_API_KEY" not in vite_source
-    assert "VITE_FINATIC_API_KEY" not in run_guide
+    for source in (sdk_source, vite_source, run_guide, env_example):
+        assert "VITE_FINATIC_API_KEY" not in source
+    assert "FINATIC_API_KEY" in env_example
     assert "/api/finatic/token" in sdk_source
     assert "FINATIC_API_KEY" in vite_source
+    assert "host: '127.0.0.1'" in vite_source
+    assert "account.grant.created" in app_source
+
+
+def test_demo_docs_only_advertise_consumed_environment_variables() -> None:
+    paths = [
+        ROOT / "README.md",
+        ROOT / "client/demo-app/README.md",
+        ROOT / "client/demo-app/RUN.md",
+        ROOT / "client/demo-app/.env.example",
+        ROOT / "server-node/demo-app/.env.example",
+        ROOT / "server-python/demo-app/env.example",
+    ]
+    for path in paths:
+        assert "FINATIC_CONNECT_URL" not in path.read_text(encoding="utf-8")

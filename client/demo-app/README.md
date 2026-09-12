@@ -43,10 +43,9 @@ This installs the local branch-ready `@finatic/client` checkout plus React, Vite
 FINATIC_API_KEY=your_api_key_here
 VITE_FINATIC_ENVIRONMENT=sandbox
 VITE_FINATIC_API_URL=https://api-staging.finatic.dev
-VITE_FINATIC_CONNECT_URL=https://connect.finatic.dev
 ```
 
-`FINATIC_API_KEY` is read by the Vite **dev server** only. It is never exposed as `VITE_*`, so it does not ship in the browser bundle. The browser calls `POST /api/finatic/token`.
+`FINATIC_API_KEY` is read by the loopback-only Vite **dev server**. It is never exposed as `VITE_*`, so it does not ship in the browser bundle. The browser calls the same-origin `POST /api/finatic/token` route.
 
 ## Running
 

@@ -17,7 +17,7 @@
 3. **Create `.env` file**:
 
    ```bash
-   printf "FINATIC_API_KEY=your_api_key_here\nVITE_FINATIC_ENVIRONMENT=sandbox\nVITE_FINATIC_API_URL=https://api-staging.finatic.dev\nVITE_FINATIC_CONNECT_URL=https://connect.finatic.dev\n" > .env
+   printf "FINATIC_API_KEY=your_api_key_here\nVITE_FINATIC_ENVIRONMENT=sandbox\nVITE_FINATIC_API_URL=https://api-staging.finatic.dev\n" > .env
    ```
 
    Or manually create `.env` with:
@@ -26,7 +26,6 @@
    FINATIC_API_KEY=your_api_key_here
    VITE_FINATIC_ENVIRONMENT=sandbox
    VITE_FINATIC_API_URL=https://api-staging.finatic.dev
-   VITE_FINATIC_CONNECT_URL=https://connect.finatic.dev
    ```
 
 4. **Run the app**:

@@ -8,7 +8,7 @@ FDX provider matrix.
 
 1. API running in **sandbox** mode (`APP_MODE=sandbox` or `FINATIC_ENVIRONMENT=sandbox`).
 2. A company workspace account with an API key or session.
-3. Connect portal URL configured (`FINATIC_CONNECT_URL` / `VITE_FINATIC_CONNECT_URL`).
+3. Finatic API URL and sandbox environment configured for the selected demo.
 4. Webhook receiver URL + `FINATIC_WEBHOOK_SECRET` if testing delivery.
 
 ## Flow (every provider)

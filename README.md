@@ -26,9 +26,9 @@ Identity terms:
 
 ## Environment Targets
 
-- **Client demo (`client/demo-app`)**: set `FINATIC_API_KEY` (server-only), `VITE_FINATIC_ENVIRONMENT=sandbox` or `live`, `VITE_FINATIC_API_URL` for staging, and `VITE_FINATIC_CONNECT_URL` when testing a non-default Connect host. Never put the company key in a `VITE_` variable.
-- **Server Node demo (`server-node/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev`, `FINATIC_ENVIRONMENT=sandbox` or `live`, and `FINATIC_CONNECT_URL` when testing a non-default Connect host.
-- **Server Python demo (`server-python/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev`, `FINATIC_ENVIRONMENT=sandbox` or `live`, and `FINATIC_CONNECT_URL` when testing a non-default Connect host.
+- **Client demo (`client/demo-app`)**: set `FINATIC_API_KEY` (server-only), `VITE_FINATIC_ENVIRONMENT=sandbox` or `live`, and `VITE_FINATIC_API_URL` for staging. Never put the company key in a `VITE_` variable.
+- **Server Node demo (`server-node/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev` and `FINATIC_ENVIRONMENT=sandbox` or `live`.
+- **Server Python demo (`server-python/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev` and `FINATIC_ENVIRONMENT=sandbox` or `live`.
 
 ## SDK versions
 

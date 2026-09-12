@@ -1,8 +1,8 @@
 # Finatic Demo Apps
 
 Reference demo applications for Finatic SDKs. All demos use the v1 account-first
-flow: create a session for a company account, open Connect, grant access to a
-financial account, read account data, and verify incoming webhooks.
+flow: mint a one-time token or portal URL, complete Connect, grant a financial
+account, then read `v1.listAccounts` / account-scoped data.
 
 ## Demo Tracks
 
@@ -12,21 +12,21 @@ financial account, read account data, and verify incoming webhooks.
 | `server-node/demo-app` | `@finatic/server-node` | Set `FINATIC_API_URL=https://api-staging.finatic.dev` |
 | `server-python/demo-app` | `finatic-server-python` | Set `FINATIC_API_URL=https://api-staging.finatic.dev` |
 
-## FDX v1 Flow
+## v1 flow
 
-1. Create a session with `/api/v1/sessions` or the SDK v1 facade.
-2. Open a portal link for the returned `sessionId`.
-3. Complete Connect and grant read access to a financial account.
-4. Read account data through `/api/v1/accounts` or SDK `v1` account helpers.
-5. Verify webhook receiver signatures with `FINATIC_WEBHOOK_SECRET`.
+1. Server: `new FinaticServer(apiKey)` + `v1.getToken()`, or `v1.startSession()` then `v1.getPortalUrl()` / `v1.get_portal_url()`.
+2. Browser: `FinaticConnect.init(token)` + `openPortal({ onEvent })`.
+3. Wait for `account.grant.created` (or confirm Connect in the CLI demos).
+4. Read `v1.listAccounts` then account-scoped methods.
+5. Verify webhook catalog / HMAC with `FINATIC_WEBHOOK_SECRET`.
 
-Identity terms used by the demos:
-- `companyAccountId` is the customer workspace account.
-- `accountId` is the linked financial account used in `/api/v1/accounts/{accountId}`.
+Identity terms:
+- `companyAccountId` is the partner workspace.
+- `accountId` is the granted financial account used in `/api/v1/accounts/{accountId}`.
 
 ## Environment Targets
 
-- **Client demo (`client/demo-app`)**: set `VITE_FINATIC_ENVIRONMENT=sandbox` or `live`, `VITE_FINATIC_API_URL` for staging, and `VITE_FINATIC_CONNECT_URL` when testing a non-default Connect host.
+- **Client demo (`client/demo-app`)**: set `FINATIC_API_KEY` (server-only), `VITE_FINATIC_ENVIRONMENT=sandbox` or `live`, `VITE_FINATIC_API_URL` for staging, and `VITE_FINATIC_CONNECT_URL` when testing a non-default Connect host. Never put the company key in a `VITE_` variable.
 - **Server Node demo (`server-node/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev`, `FINATIC_ENVIRONMENT=sandbox` or `live`, and `FINATIC_CONNECT_URL` when testing a non-default Connect host.
 - **Server Python demo (`server-python/demo-app`)**: in `.env`, set `FINATIC_API_URL=https://api-staging.finatic.dev`, `FINATIC_ENVIRONMENT=sandbox` or `live`, and `FINATIC_CONNECT_URL` when testing a non-default Connect host.
 
@@ -59,6 +59,15 @@ For broader end-to-end validation flows, use `../testing/FinaticTester`.
 
 ## Docs
 
-- SDK docs: [https://finatic.dev/docs](https://finatic.dev/docs)
+This README is the demo-app index. Fetch the rest before writing a full integration:
+
+- Quick start: [https://finatic.dev/docs/quick-start/quick-start](https://finatic.dev/docs/quick-start/quick-start)
+- Client SDK README: [https://github.com/FinaticORG/FinaticClientSDK/blob/develop/README.md](https://github.com/FinaticORG/FinaticClientSDK/blob/develop/README.md)
+- Node SDK README: [https://github.com/FinaticORG/FinaticServerSDK-Node/blob/develop/README.md](https://github.com/FinaticORG/FinaticServerSDK-Node/blob/develop/README.md)
+- Python SDK README: [https://github.com/FinaticORG/FinaticServerSDK-Python/blob/develop/README.md](https://github.com/FinaticORG/FinaticServerSDK-Python/blob/develop/README.md)
+- Embed Connect: [https://github.com/FinaticORG/FinaticConnect/blob/develop/docs/embedding.md](https://github.com/FinaticORG/FinaticConnect/blob/develop/docs/embedding.md)
 - API reference: [https://finatic.dev/docs/api-reference](https://finatic.dev/docs/api-reference)
+- OpenAPI: [https://finatic.dev/openapi.json](https://finatic.dev/openapi.json)
+- Agent index: [https://finatic.dev/llms.txt](https://finatic.dev/llms.txt)
+- Agent notes: [https://finatic.dev/AGENTS.md](https://finatic.dev/AGENTS.md)
 - Sandbox 12-provider walkthrough: [`docs/sandbox-12-provider-walkthrough.md`](docs/sandbox-12-provider-walkthrough.md)

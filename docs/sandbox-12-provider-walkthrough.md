@@ -13,8 +13,8 @@ FDX provider matrix.
 
 ## Flow (every provider)
 
-1. Create a session (`POST /api/v1/sessions` or SDK `v1.createSession`).
-2. Open the portal link for the session.
+1. Mint a one-time token (`POST /api/v1/session/init` or SDK `v1.getToken()` / `v1.get_token()`).
+2. Open Connect (`v1.getPortalUrl()` / `openPortal`).
 3. Select the provider in Connect and complete auth (OAuth, credentials, or push-agent as required).
 4. Grant **read** access to at least one financial account.
 5. Confirm the grant via `GET /api/v1/account-grants` (or SDK `v1.listAccountGrants`).

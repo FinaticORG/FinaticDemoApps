@@ -7,7 +7,7 @@ A React demo application that demonstrates the Finatic Client SDK v1 account-fir
 - **Clean Architecture**: SDK logic separated from UI (`src/sdk.ts` vs `src/App.tsx`)
 - **Singleton Pattern**: Single SDK instance managed in `sdk.ts`
 - **Simple API**: Easy-to-understand functions for all SDK operations
-- **Authentication**: Create a v1 session and open Connect through `/api/v1/sessions/{sessionId}/portal-links`
+- **Authentication**: Mint `POST /api/v1/session/init`, then `FinaticConnect.init` + `openPortal`
 - **Data Display**: List financial accounts and fetch an account by account id
 - **Environment Toggle**: Use sandbox or live by setting `VITE_FINATIC_ENVIRONMENT`
 
@@ -40,19 +40,13 @@ This installs the local branch-ready `@finatic/client` checkout plus React, Vite
 3. **Create a `.env` file** in the `demo-app` directory:
 
 ```bash
-VITE_FINATIC_API_KEY=your_api_key_here
+FINATIC_API_KEY=your_api_key_here
 VITE_FINATIC_ENVIRONMENT=sandbox
 VITE_FINATIC_API_URL=https://api-staging.finatic.dev
 VITE_FINATIC_CONNECT_URL=https://connect.finatic.dev
 ```
 
-**⚠️ Production Note**: In production, you should NOT fetch tokens directly from the frontend. Instead:
-- Create a backend API endpoint (e.g., `/api/finatic/token`)
-- Your frontend calls your backend
-- Your backend securely calls the Finatic API with your API key
-- This prevents exposing your API key in the frontend bundle
-
-See `src/sdk.ts` for more details and the production note.
+`FINATIC_API_KEY` is read by the Vite **dev server** only. It is never exposed as `VITE_*`, so it does not ship in the browser bundle. The browser calls `POST /api/finatic/token`.
 
 ## Running
 

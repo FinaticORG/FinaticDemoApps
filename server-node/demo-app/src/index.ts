@@ -1,52 +1,33 @@
 #!/usr/bin/env node
 
 /**
- * Finatic Server SDK Node.js Usage Example
+ * Finatic Server SDK Node.js demo
  *
- * This file demonstrates the FDX v1 account-first flow:
- * session -> portal link -> account read -> webhook subscription catalog.
+ * Flow: API key → session → getPortalUrl → grant → listAccounts → webhook catalog.
  */
 
 import 'dotenv/config';
 import { FinaticServer } from '@finatic/server-node';
 import inquirer from 'inquirer';
 
-// Configuration from environment variables
 const API_URL = process.env.FINATIC_API_URL || 'https://api.finatic.dev';
 const API_KEY = process.env.FINATIC_API_KEY!;
 const FINATIC_ENVIRONMENT = process.env.FINATIC_ENVIRONMENT || 'sandbox';
-const CONNECT_URL = (process.env.FINATIC_CONNECT_URL || 'https://connect.finatic.dev').replace(/\/$/, '');
-
-function getPortalUrl(portalLink: unknown): string | null {
-  const data =
-    (portalLink as any)?.success?.data ??
-    (portalLink as any)?.data ??
-    {};
-  const portalUrl = data.portalUrl || data.portal_url;
-  if (portalUrl) return portalUrl;
-
-  const token = data.one_time_token;
-  if (!token) return null;
-
-  const url = new URL('/auth', CONNECT_URL);
-  url.searchParams.set('token', token);
-  return url.toString();
-}
 
 async function waitForPortalAuthentication(portalUrl: string): Promise<boolean> {
-  console.log('\n🌐 Please visit this URL to authenticate:');
+  console.log('\nVisit this Connect URL, grant an account, then return:');
   console.log(portalUrl);
   const { confirmed } = await inquirer.prompt([
     {
       type: 'confirm',
       name: 'confirmed',
-      message: 'Have you completed authentication in the portal?',
+      message: 'Have you completed Connect and granted an account?',
       default: false,
     },
   ]);
 
   if (!confirmed) {
-    console.log('Authentication not completed. Exiting...');
+    console.log('Connect not completed. Exiting...');
     return false;
   }
 
@@ -54,12 +35,17 @@ async function waitForPortalAuthentication(portalUrl: string): Promise<boolean> 
 }
 
 async function main() {
-  const finatic = await FinaticServer.init(API_KEY, undefined, {
+  const finatic = new FinaticServer(API_KEY, {
     baseUrl: API_URL,
-    apiEnvironment: FINATIC_ENVIRONMENT,
+    apiEnvironment: FINATIC_ENVIRONMENT as 'live' | 'sandbox',
     logLevel: 'debug',
     structuredLogging: true,
   });
+
+  const session = await finatic.v1.startSession();
+  if (!session.session_id) {
+    throw new Error(session.error ?? 'Session start failed');
+  }
 
   const sessionId = finatic.v1.getSessionId();
   const companyId = finatic.v1.getCompanyId();
@@ -67,23 +53,15 @@ async function main() {
     throw new Error('Session initialization did not return session and company context.');
   }
 
-  console.log('FDX v1 context');
-  console.log({ sessionId, companyAccountId: companyId, environment: FINATIC_ENVIRONMENT });
-
-  const portalLink = await finatic.v1.createPortalLink(
+  console.log('v1 context', {
     sessionId,
-    {
-      redirectUrl: process.env.FINATIC_PORTAL_REDIRECT_URL,
-      metadata: {
-        demo: 'server-node/demo-app',
-      },
-    },
-    { environment: FINATIC_ENVIRONMENT as any }
-  );
-  const portalUrl = getPortalUrl(portalLink);
+    companyAccountId: companyId,
+    environment: FINATIC_ENVIRONMENT,
+  });
 
+  const portalUrl = await finatic.v1.getPortalUrl({ mode: 'dark' });
   if (!portalUrl) {
-    console.log('Portal link response did not include a URL:', portalLink);
+    console.log('getPortalUrl did not return a URL');
     return;
   }
 
@@ -93,22 +71,22 @@ async function main() {
 
   const accountsResponse = await finatic.v1.listAccounts(
     { includeSyncStatus: true },
-    { environment: FINATIC_ENVIRONMENT as any }
+    { environment: FINATIC_ENVIRONMENT as 'live' | 'sandbox' },
   );
   console.log('accounts', JSON.stringify(accountsResponse, null, 2));
 
-  const accounts = (accountsResponse as any)?.success?.data ?? (accountsResponse as any)?.data ?? [];
+  const accounts = accountsResponse.data ?? [];
   const firstAccount = Array.isArray(accounts) ? accounts[0] : undefined;
   const accountId = firstAccount?.accountId || firstAccount?.id;
   if (accountId) {
-    const accountResponse = await finatic.v1.getAccount(accountId, {
-      environment: FINATIC_ENVIRONMENT as any,
+    const accountResponse = await finatic.v1.getAccount(String(accountId), {
+      environment: FINATIC_ENVIRONMENT as 'live' | 'sandbox',
     });
     console.log('first account', JSON.stringify(accountResponse, null, 2));
   }
 
   const webhookCatalog = await finatic.v1.getWebhookCatalog({
-    environment: FINATIC_ENVIRONMENT as any,
+    environment: FINATIC_ENVIRONMENT as 'live' | 'sandbox',
   });
   console.log('webhook catalog', JSON.stringify(webhookCatalog, null, 2));
 }

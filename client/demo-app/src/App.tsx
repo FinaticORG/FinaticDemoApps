@@ -25,6 +25,7 @@ function App() {
     isAuthenticated: false,
     userId: null as string | null,
   });
+  const [grantReady, setGrantReady] = useState(false);
 
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [accountResult, setAccountResult] = useState<any>(null);
@@ -66,8 +67,8 @@ function App() {
   }, []);
 
   const handleListAccounts = async () => {
-    if (!authStatus.isAuthenticated) {
-      setAccountError("Please authenticate first");
+    if (!authStatus.isAuthenticated || !grantReady) {
+      setAccountError("Complete Connect and wait for an account grant first");
       return;
     }
 
@@ -121,6 +122,12 @@ function App() {
         onSuccess: () => {
           updateAuthStatus();
         },
+        onEvent: (eventName: string) => {
+          if (eventName === "account.grant.created") {
+            setGrantReady(true);
+            updateAuthStatus();
+          }
+        },
         onError: (err: Error) => {
           setError(err.message);
         },
@@ -165,14 +172,16 @@ function App() {
           <div className="auth-status">
             <span
               className={`status ${
-                authStatus.isAuthenticated
+                grantReady
                   ? "authenticated"
                   : "not-authenticated"
               }`}
             >
-              {authStatus.isAuthenticated
-                ? "✓ Authenticated"
-                : "✗ Not Authenticated"}
+              {grantReady
+                ? "✓ Account grant ready"
+                : authStatus.isAuthenticated
+                  ? "Connect linked — waiting for account grant"
+                  : "✗ Not Authenticated"}
             </span>
             {authStatus.userId && (
               <span className="user-id">User: {authStatus.userId}</span>
@@ -182,11 +191,12 @@ function App() {
 
         {error && <div className="error">Error: {error}</div>}
 
-        {!authStatus.isAuthenticated && (
+        {!grantReady && (
           <div className="auth-section">
-            <h2>Authentication Required</h2>
+            <h2>Account Grant Required</h2>
             <p>
-              Click the button below to authenticate via the Finatic portal.
+              Open Connect and complete the flow. Account reads unlock after
+              the <code>account.grant.created</code> event.
             </p>
             <button onClick={handleOpenPortal} className="btn btn-primary">
               Open Authentication Portal
@@ -194,7 +204,7 @@ function App() {
           </div>
         )}
 
-        {authStatus.isAuthenticated && (
+        {grantReady && (
           <div className="data-section">
             <div className="actions">
               <button

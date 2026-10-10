@@ -201,3 +201,21 @@ export async function getAccount(accountId: string): Promise<any> {
     environment: FINATIC_ENVIRONMENT,
   });
 }
+
+export async function offboardSelectedBrokerConnection(
+  userId: string,
+  accountId: string,
+): Promise<any> {
+  if (!finaticInstance) {
+    throw new Error('SDK not initialized. Call initializeSDK() first.');
+  }
+
+  return finaticInstance.v1.offboardBrokerConnection(
+    {
+      userId,
+      accountId,
+      idempotencyKey: crypto.randomUUID(),
+    },
+    { environment: FINATIC_ENVIRONMENT },
+  );
+}

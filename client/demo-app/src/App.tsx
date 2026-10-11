@@ -14,6 +14,7 @@ import {
   openPortal,
   listAccounts,
   getAccount,
+  offboardSelectedBrokerConnection,
 } from "./sdk";
 import "./App.css";
 
@@ -109,6 +110,34 @@ function App() {
     } catch (err) {
       setAccountError(
         err instanceof Error ? err.message : "Failed to load account",
+      );
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
+  const handleOffboardFirstAccountConnection = async () => {
+    const accounts = accountResult?.success?.data ?? accountResult?.data ?? [];
+    const firstAccountId = Array.isArray(accounts)
+      ? accounts[0]?.accountId || accounts[0]?.id
+      : accountResult?.success?.data?.accountId || accountResult?.data?.accountId;
+    if (!authStatus.userId || !firstAccountId) {
+      setAccountError("Load accounts first and keep the authenticated user id.");
+      return;
+    }
+    if (!window.confirm("Offboard the broker connection containing this account?")) {
+      return;
+    }
+
+    setLoadingAccounts(true);
+    setAccountError(null);
+    try {
+      setAccountResult(
+        await offboardSelectedBrokerConnection(authStatus.userId, firstAccountId),
+      );
+    } catch (err) {
+      setAccountError(
+        err instanceof Error ? err.message : "Failed to offboard broker connection",
       );
     } finally {
       setLoadingAccounts(false);
@@ -220,6 +249,13 @@ function App() {
                 disabled={loadingAccounts || !accountResult}
               >
                 Get First Account
+              </button>
+              <button
+                onClick={handleOffboardFirstAccountConnection}
+                className="btn btn-secondary"
+                disabled={loadingAccounts || !accountResult || !authStatus.userId}
+              >
+                Offboard Selected Broker Connection
               </button>
             </div>
 

@@ -83,6 +83,30 @@ async function main() {
       environment: FINATIC_ENVIRONMENT as 'live' | 'sandbox',
     });
     console.log('first account', JSON.stringify(accountResponse, null, 2));
+
+    const { offboardSelected } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'offboardSelected',
+        message: 'Offboard the broker connection selected by this account?',
+        default: false,
+      },
+    ]);
+    if (offboardSelected) {
+      const userId = finatic.v1.getUserId();
+      if (!userId) {
+        throw new Error('The active session did not return a user ID.');
+      }
+      const offboarding = await finatic.v1.offboardBrokerConnection(
+        {
+          userId,
+          accountId: String(accountId),
+          idempotencyKey: crypto.randomUUID(),
+        },
+        { environment: FINATIC_ENVIRONMENT as 'live' | 'sandbox' },
+      );
+      console.log('selected broker offboarding', JSON.stringify(offboarding, null, 2));
+    }
   }
 
   const webhookCatalog = await finatic.v1.getWebhookCatalog({

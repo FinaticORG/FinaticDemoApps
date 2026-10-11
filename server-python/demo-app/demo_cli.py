@@ -46,7 +46,9 @@ FINATIC_ENVIRONMENT = os.getenv("FINATIC_ENVIRONMENT", "sandbox")
 
 
 async def wait_for_portal_authentication(portal_url: str) -> bool:
-    console.print("\n[blue]Visit this Connect URL, grant an account, then return:[/blue]")
+    console.print(
+        "\n[blue]Visit this Connect URL, grant an account, then return:[/blue]"
+    )
     console.print(f"[cyan]{portal_url}[/cyan]")
     confirmed = Confirm.ask(
         "Have you completed Connect and granted an account?", default=False
@@ -103,6 +105,20 @@ async def main() -> None:
         account_id = first_account.get("accountId") or first_account.get("id")
         if account_id:
             console.print(await finatic.v1.get_account(account_id))
+            if Confirm.ask(
+                "Offboard the broker connection selected by this account?",
+                default=False,
+            ):
+                user_id = finatic.v1.get_user_id()
+                if not user_id:
+                    raise RuntimeError("The active session did not return a user ID.")
+                console.print(
+                    await finatic.v1.offboard_broker_connection(
+                        user_id,
+                        account_id,
+                        idempotency_key=os.urandom(16).hex(),
+                    )
+                )
 
     console.print(await finatic.v1.get_webhook_catalog())
 

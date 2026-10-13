@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - staging
+      - main
       - fdx-account-consent-v1
 
 
@@ -20,21 +21,24 @@ jobs:
       run:
         working-directory: client/demo-app
     steps:
-      - name: Skip heavy CI for Dependabot
-        if: github.actor == 'dependabot[bot]'
-        run: echo "Skipping heavy product CI for Dependabot (Actions cost control)."
+      - name: Skip heavy CI for Dependabot / release PRs
+        if: github.actor == 'dependabot[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.title, 'chore(release):'))
+        working-directory: .
+        run: echo "Skipping heavy product CI for Dependabot or chore(release) PRs (Actions cost control)."
       - uses: actions/checkout@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
 
       - uses: actions/checkout@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         with:
           repository: FinaticORG/FinaticClientSDK
-          ref: develop
+          # Branch-ready dependency for FinaticAPI#821; return to develop after
+          # FinaticClientSDK#133 merges.
+          ref: 8c8c6bac4eeba46f47e5be4242d571f24e9843b7
           path: sdks/FinaticClientSDK
 
       - uses: actions/setup-node@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         with:
           node-version: 20
           cache: npm
@@ -43,23 +47,38 @@ jobs:
             sdks/FinaticClientSDK/package-lock.json
 
       - name: Build Client SDK
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         working-directory: sdks/FinaticClientSDK
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: |
           echo "@finatic/client:file:../../sdks/FinaticClientSDK" > .npmrc
           npm install ../../sdks/FinaticClientSDK --legacy-peer-deps
 
       - name: Install dependencies
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: npm install --legacy-peer-deps
 
       - name: Build
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: npm run build
+
+      - name: Test token mint boundary
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
+        run: npm test
+
+  dx-contracts:
+    name: partner docs DX contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install pytest
+      - run: python3 -m pytest tests/test_dx_partner_docs.py
 
   server-node-demo:
     name: server-node/demo-app
@@ -68,21 +87,24 @@ jobs:
       run:
         working-directory: server-node/demo-app
     steps:
-      - name: Skip heavy CI for Dependabot
-        if: github.actor == 'dependabot[bot]'
-        run: echo "Skipping heavy product CI for Dependabot (Actions cost control)."
+      - name: Skip heavy CI for Dependabot / release PRs
+        if: github.actor == 'dependabot[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.title, 'chore(release):'))
+        working-directory: .
+        run: echo "Skipping heavy product CI for Dependabot or chore(release) PRs (Actions cost control)."
       - uses: actions/checkout@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
 
       - uses: actions/checkout@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         with:
           repository: FinaticORG/FinaticServerSDK-Node
-          ref: develop
+          # Branch-ready dependency for FinaticAPI#821; return to develop after
+          # FinaticServerSDK-Node#208 merges.
+          ref: d6d43c382ab93f6d5520aa71aced3c74f4eb9c26
           path: sdks/FinaticServerSDK-Node
 
       - uses: actions/setup-node@v7
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         with:
           node-version: 20
           cache: npm
@@ -91,20 +113,20 @@ jobs:
             sdks/FinaticServerSDK-Node/package-lock.json
 
       - name: Build Server Node SDK
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         working-directory: sdks/FinaticServerSDK-Node
         run: npm ci && npm run build
 
       - name: Configure local SDK path
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: |
           echo "@finatic/server-node:file:../../sdks/FinaticServerSDK-Node" > .npmrc
           npm install ../../sdks/FinaticServerSDK-Node --legacy-peer-deps
 
       - name: Install dependencies
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: npm install --legacy-peer-deps
 
       - name: Build
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         run: npm run build

@@ -23,7 +23,6 @@
     /* Path aliases */
     "baseUrl": "."
   },
-  "include": ["src", "src/vite-env.d.ts"],
+  "include": ["src", "src/vite-env.d.ts", "token-mint.test.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
-

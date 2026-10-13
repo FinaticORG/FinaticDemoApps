@@ -17,16 +17,15 @@
 3. **Create `.env` file**:
 
    ```bash
-   printf "VITE_FINATIC_API_KEY=your_api_key_here\nVITE_FINATIC_ENVIRONMENT=sandbox\nVITE_FINATIC_API_URL=https://api-staging.finatic.dev\nVITE_FINATIC_CONNECT_URL=https://connect.finatic.dev\n" > .env
+   printf "FINATIC_API_KEY=your_api_key_here\nVITE_FINATIC_ENVIRONMENT=sandbox\nVITE_FINATIC_API_URL=https://api-staging.finatic.dev\n" > .env
    ```
 
    Or manually create `.env` with:
 
    ```
-   VITE_FINATIC_API_KEY=your_api_key_here
+   FINATIC_API_KEY=your_api_key_here
    VITE_FINATIC_ENVIRONMENT=sandbox
    VITE_FINATIC_API_URL=https://api-staging.finatic.dev
-   VITE_FINATIC_CONNECT_URL=https://connect.finatic.dev
    ```
 
 4. **Run the app**:
@@ -65,7 +64,7 @@ server: {
 
 - Make sure your `.env` file is in the `demo-app` directory
 - Restart the dev server after creating/modifying `.env`
-- Check that `VITE_FINATIC_API_KEY` is set correctly
+- Check that `FINATIC_API_KEY` is set in `.env` (server-only; not `VITE_`)
 
 ### SDK not found?
 

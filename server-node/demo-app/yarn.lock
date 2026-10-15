@@ -210,7 +210,7 @@ __metadata:
 
 "@finatic/server-node@file:../../../SDKs/Server/FinaticServerSDK-Node::locator=%40finatic%2Fserver-node-demo%40workspace%3A.":
   version: 1.0.5
-  resolution: "@finatic/server-node@file:../../../SDKs/Server/FinaticServerSDK-Node#../../../SDKs/Server/FinaticServerSDK-Node::hash=7635fd&locator=%40finatic%2Fserver-node-demo%40workspace%3A."
+  resolution: "@finatic/server-node@file:../../../SDKs/Server/FinaticServerSDK-Node#../../../SDKs/Server/FinaticServerSDK-Node::hash=df6af1&locator=%40finatic%2Fserver-node-demo%40workspace%3A."
   dependencies:
     axios: "npm:^1.18.1"
     node-cache: "npm:^5.1.2"
@@ -218,7 +218,7 @@ __metadata:
     shell-quote: "npm:1.11.0"
     uuid: "npm:^14.0.1"
     zod: "npm:^4.1.13"
-  checksum: 10c0/e60a524756c5d4a4125dcbcd1ca14bccdfa34c5b909fca092357d92754d4a9eda809371976a529ade8507810ab07cc155ed92721b75f0d4c65539fe738282dff
+  checksum: 10c0/f71bacaf9fb0fb92296e175da0403b604d686aff6a8e9ac9da2029f803c668361d011b821fcda66ba70a3add31421f0231d0e2ce05b556f67467afc2f3554d3f
   languageName: node
   linkType: hard
 

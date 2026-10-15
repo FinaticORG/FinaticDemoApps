@@ -100,7 +100,7 @@ jobs:
           repository: FinaticORG/FinaticServerSDK-Node
           # Security-compatible Node 18+ dependency input for DemoApps#77.
           # Keep this immutable until FinaticServerSDK-Node#224 is merged.
-          ref: 2e90ab90e371cca6df9cb56d801e54b61fdacc31
+          ref: 6e6ee1357018e5a3a7042eda73f6c5b8a5c57403
           path: sdks/FinaticServerSDK-Node
 
       - uses: actions/setup-node@v7

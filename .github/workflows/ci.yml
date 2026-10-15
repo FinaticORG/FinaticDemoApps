@@ -98,9 +98,9 @@ jobs:
         if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.event.pull_request.title, 'chore(release):') == false)
         with:
           repository: FinaticORG/FinaticServerSDK-Node
-          # Branch-ready dependency for FinaticAPI#821; return to develop after
-          # FinaticServerSDK-Node#208 merges.
-          ref: d6d43c382ab93f6d5520aa71aced3c74f4eb9c26
+          # Security-compatible Node 18+ dependency input for DemoApps#77.
+          # Keep this immutable until FinaticServerSDK-Node#224 is merged.
+          ref: 6e6ee1357018e5a3a7042eda73f6c5b8a5c57403
           path: sdks/FinaticServerSDK-Node
 
       - uses: actions/setup-node@v7

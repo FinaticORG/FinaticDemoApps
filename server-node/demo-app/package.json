@@ -49,11 +49,15 @@
   "packageManager": "yarn@4.9.4",
   "type": "module",
   "resolutions": {
-    "brace-expansion": "^2.1.2",
+    "axios": "1.20.0",
+    "brace-expansion": "5.0.12",
     "flatted": "^3.4.0",
     "picomatch": "^2.3.2",
     "minimatch": "^9.0.7",
-    "js-yaml": "^4.3.0",
-    "axios": "^1.15.3"
+    "js-yaml": "5.4.3",
+    "node-gyp": "12.4.0",
+    "proxy-addr": "2.0.8",
+    "tar": "7.5.22",
+    "undici": "6.29.0"
   }
 }

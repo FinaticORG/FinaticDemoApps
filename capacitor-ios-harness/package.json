@@ -1,0 +1,23 @@
+{
+  "name": "@finatic/capacitor-ios-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Capacitor iOS Simulator harness for FinaticConnect#618 reproduction (Browser + Embedded host modes)",
+  "scripts": {
+    "build": "vite build",
+    "test": "node --test scripts/*.test.mjs",
+    "mint-server": "node scripts/mint-server.mjs",
+    "ios:prepare": "bash scripts/prepare-ios.sh"
+  },
+  "dependencies": {
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/ios": "8.6.2",
+    "@finatic/client": "1.1.6"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2",
+    "vite": "^6.4.3"
+  }
+}

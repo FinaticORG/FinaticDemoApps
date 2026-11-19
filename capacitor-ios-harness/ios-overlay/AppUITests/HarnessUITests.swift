@@ -41,7 +41,7 @@ final class HarnessUITests: XCTestCase {
         shot("teardown")
         let status: String
         if let run = testRun {
-            status = run.hasSucceeded ? (run.hasBeenSkipped ? "skipped" : "passed") : "failed"
+            status = run.hasBeenSkipped ? "skipped" : (run.hasSucceeded ? "passed" : "failed")
         } else {
             status = "unknown"
         }

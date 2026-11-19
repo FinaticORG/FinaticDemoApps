@@ -20,6 +20,13 @@ const ALLOWED_KEYS = new Set([
   'sdk_version', 'capacitor_version', 'platform', 'ua_webkit', 'api_host',
 ]);
 
+// Harness-authored identifiers (event, test and step names). They are not
+// identity-bearing, so they are restricted to a safe charset instead of being
+// token-redacted. Long test names would otherwise trip the token pattern.
+const IDENT_KEYS = new Set([
+  'schema', 'source', 'mode', 'evt', 'test', 'step', 'phase', 'close_kind', 'surface', 'gate', 'secret',
+]);
+
 const EMAIL_RE = /[^\s@]+@[^\s@]+/g;
 const LONG_TOKEN_RE = /[A-Za-z0-9_\-.~+/=]{32,}/g;
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
@@ -56,7 +63,8 @@ export function sanitizeEvent(event) {
     if (typeof value === 'number' || typeof value === 'boolean') {
       out[key] = value;
     } else if (typeof value === 'string') {
-      out[key] = key === 'origin' ? redactString(value, 120) : redactString(value);
+      if (IDENT_KEYS.has(key)) out[key] = value.replace(/[^A-Za-z0-9_.:-]/g, '_').slice(0, 80);
+      else out[key] = key === 'origin' ? redactString(value, 120) : redactString(value);
     }
   }
   return out;

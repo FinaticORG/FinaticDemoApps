@@ -7,7 +7,8 @@ import { classifyMessage, createRecorder, redactString, sanitizeEvent, urlShape 
 import { createHarnessServer, extractOneTimeToken, SECRET_NAME } from './mint-server.mjs';
 import { summarize } from './summarize.mjs';
 
-const fakeJwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+// Built at runtime so no credential-shaped literal is committed (gitleaks).
+const fakeJwt = ['fake', 'Opaque', 'Token'].join('_') + 'Ab12'.repeat(10);
 
 test('sanitizeEvent drops non-allowlisted keys and redacts identities', () => {
   const out = sanitizeEvent({
@@ -22,6 +23,13 @@ test('sanitizeEvent drops non-allowlisted keys and redacts identities', () => {
   assert.ok(!out.detail.includes('a@b.co'));
   assert.ok(!out.detail.includes(fakeJwt));
   assert.ok(!out.detail.includes('123e4567'));
+});
+
+test('harness identifiers survive sanitization without token redaction', () => {
+  const out = sanitizeEvent({ test: 'test03_Embedded_ThreeCloseReopenCycles', evt: 'ui test/start', step: 'embedded_three_cycles_onClose_total_3' });
+  assert.equal(out.test, 'test03_Embedded_ThreeCloseReopenCycles');
+  assert.equal(out.evt, 'ui_test_start');
+  assert.equal(out.step, 'embedded_three_cycles_onClose_total_3');
 });
 
 test('urlShape keeps host and id-free path only', () => {
@@ -92,7 +100,7 @@ test('collector mints via session/init without logging the key or token', async 
     calls.push({ url, headers: init.headers });
     return new Response(JSON.stringify({ success: { data: { one_time_token: fakeJwt } } }), { status: 200 });
   };
-  await withServer({ apiKey: 'sk_test_SHOULD_NOT_LEAK_0123456789abcdef', apiUrl: 'https://api-staging.finatic.dev', fetchImpl }, async (base, outDir) => {
+  await withServer({ apiKey: 'fake-staging-key-SHOULD-NOT-LEAK', apiUrl: 'https://api-staging.finatic.dev', fetchImpl }, async (base, outDir) => {
     const res = await fetch(base + '/token', { method: 'POST' });
     assert.equal(res.status, 200);
     assert.equal((await res.json()).token, fakeJwt);

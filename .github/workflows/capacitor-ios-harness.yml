@@ -1,0 +1,149 @@
+name: Capacitor iOS harness (FIN-13157 / Connect#618)
+
+# Builds the Capacitor iOS harness, boots a named iOS Simulator on a
+# GitHub-hosted macOS runner, and runs XCUITest flows for the Browser
+# (SFSafariViewController) and Embedded (WKWebView) host modes against
+# Connect staging. Sanitized JSONL events, screenshots, the device log and the
+# run matrix are uploaded as one artifact.
+#
+# Gate: minting a Connect staging portal token needs the repository Actions
+# secret FINATIC_STAGING_SANDBOX_API_KEY (a Connect *staging sandbox* company
+# API key). Without it the run is instrumented but GATED and fails the verdict.
+
+on:
+  workflow_dispatch:
+    inputs:
+      connect_staging_sha:
+        description: Deployed Connect staging SHA (FinaticConnect deployments, environment=staging)
+        required: false
+        default: 291c3764175148e465064d39acfb65edbc95e7d9
+      oauth_broker:
+        description: Optional staging sandbox OAuth broker id to preselect (blank = first institution)
+        required: false
+        default: ''
+      runner:
+        description: GitHub-hosted macOS image
+        required: false
+        default: macos-15
+      device_type:
+        description: Optional simulator device type name (blank = newest plain iPhone)
+        required: false
+        default: ''
+  pull_request:
+    branches: [develop, staging, main]
+    paths:
+      - capacitor-ios-harness/**
+      - .github/workflows/capacitor-ios-harness.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-harness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-harness:
+    name: iOS Simulator harness (browser + embedded)
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ${{ inputs.runner || 'macos-15' }}
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: capacitor-ios-harness
+    env:
+      HARNESS_OUT: ${{ github.workspace }}/harness-out
+      FINATIC_API_URL: https://api-staging.finatic.dev
+      FINATIC_API_ENVIRONMENT: sandbox
+      HARNESS_OAUTH_BROKER: ${{ inputs.oauth_broker || '' }}
+      DEVICE_TYPE: ${{ inputs.device_type || '' }}
+      CONNECT_STAGING_SHA: ${{ inputs.connect_staging_sha || '291c3764175148e465064d39acfb65edbc95e7d9' }}
+      CONNECT_STAGING_SHA_SOURCE: ${{ inputs.connect_staging_sha && 'workflow_dispatch input' || 'default - FinaticConnect staging deployment 2026-11-18' }}
+      APP_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: capacitor-ios-harness/package-lock.json
+
+      - name: Install harness (published @finatic/client from npm)
+        run: npm ci --no-audit --no-fund
+
+      - name: Unit tests (sanitizer, collector, summary)
+        run: npm test
+
+      - name: Install xcodeproj gem
+        run: gem install xcodeproj --no-document || sudo gem install xcodeproj --no-document
+
+      - name: Generate Capacitor iOS project + harness targets
+        run: npm run ios:prepare
+
+      - name: Boot named iOS Simulator
+        run: bash scripts/boot-simulator.sh
+
+      - name: Start runner-local token mint + event collector
+        env:
+          FINATIC_STAGING_SANDBOX_API_KEY: ${{ secrets.FINATIC_STAGING_SANDBOX_API_KEY }}
+        run: |
+          mkdir -p "$HARNESS_OUT"
+          nohup node scripts/mint-server.mjs > "$HARNESS_OUT/collector.log" 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8787/health && break; sleep 1; done
+
+      - name: Record run matrix
+        env:
+          FINATIC_STAGING_SANDBOX_API_KEY: ${{ secrets.FINATIC_STAGING_SANDBOX_API_KEY }}
+        run: node scripts/write-matrix.mjs "$HARNESS_OUT"
+
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App | tail -20
+
+      - name: Build and run XCUITest (browser + embedded)
+        id: xcuitest
+        run: |
+          set +e
+          TEST_RUNNER_HARNESS_OAUTH_BROKER="$HARNESS_OAUTH_BROKER" \
+          xcodebuild test \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -destination "id=$SIM_UDID" \
+            -resultBundlePath "$HARNESS_OUT/HarnessUITests.xcresult" \
+            -test-timeouts-enabled YES \
+            -maximum-test-execution-time-allowance 900 \
+            > "$HARNESS_OUT/xcodebuild.log" 2>&1
+          code=$?
+          tail -80 "$HARNESS_OUT/xcodebuild.log"
+          grep -E "Test Case .*(passed|failed|skipped)|error:" "$HARNESS_OUT/xcodebuild.log" | tail -60 || true
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Export device log + summarize
+        if: always()
+        run: |
+          bash scripts/export-device-log.sh || true
+          node scripts/summarize.mjs "$HARNESS_OUT" | tee -a "$GITHUB_STEP_SUMMARY"
+          xcrun simctl io "$SIM_UDID" screenshot "$HARNESS_OUT/final-simulator.png" || true
+
+      - name: Upload harness artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fin13157-ios-harness-${{ github.run_id }}-${{ github.run_attempt }}
+          path: harness-out
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Verdict
+        if: always()
+        env:
+          XCUITEST_EXIT: ${{ steps.xcuitest.outputs.exit_code }}
+        run: |
+          node -e '
+            const s = require(process.env.HARNESS_OUT + "/summary.json");
+            if (s.gates.length) { console.log("::error::GATED: " + s.gates.join(", ") + " (provision the Actions secret; never commit keys)"); process.exit(1); }
+          '
+          if [ "$XCUITEST_EXIT" != "0" ]; then
+            echo "::error::xcodebuild test exited $XCUITEST_EXIT (see artifact xcodebuild.log / xcresult)"
+            exit 1
+          fi

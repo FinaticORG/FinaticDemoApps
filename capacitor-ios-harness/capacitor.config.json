@@ -1,0 +1,9 @@
+{
+  "appId": "dev.finatic.harness618",
+  "appName": "FinaticHarness",
+  "webDir": "dist",
+  "ios": {
+    "webContentsDebugEnabled": true,
+    "scheme": "FinaticHarness"
+  }
+}
